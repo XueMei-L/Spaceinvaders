@@ -1,0 +1,20 @@
+{
+	"configurations": [
+		{
+			"name": "SpaceInvadersEditor Editor Win64 Development (SpaceInvaders)",
+			"compilerPath": "G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"cStandard": "c17",
+			"cppStandard": "c++20",
+			"intelliSenseMode": "msvc-x64",
+			"compileCommands": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders.json"
+		},
+		{
+			"name": "Win32",
+			"compilerPath": "G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"cStandard": "c17",
+			"cppStandard": "c++20",
+			"intelliSenseMode": "msvc-x64",
+			"compileCommands": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_Default.json"
+		}
+	]
+}

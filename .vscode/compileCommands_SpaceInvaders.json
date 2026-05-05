@@ -1,0 +1,138 @@
+[
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Private\\Bullet.cpp",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Private\\Invader.cpp",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Private\\InvaderMovementComponent.cpp",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Private\\InvaderSquad.cpp",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Private\\SIGameModeBase.cpp",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Private\\SIPawn.cpp",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Private\\SIPlayerController.cpp",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Public\\Bullet.h",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Public\\Invader.h",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Public\\InvaderMovementComponent.h",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Public\\InvaderSquad.h",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Public\\SIGameModeBase.h",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Public\\SIPawn.h",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\Public\\SIPlayerController.h",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\SpaceInvaders.Build.cs",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\SpaceInvaders.cpp",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\Source\\SpaceInvaders\\SpaceInvaders.h",
+		"arguments": [
+			"G:\\Visual Studio Community\\Visual Studio\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\linyouzi\\Desktop\\spaceinvaders_final\\spaceinvaders_final_54\\.vscode\\compileCommands_SpaceInvaders\\SpaceInvaders.1.rsp"
+		],
+		"directory": "G:\\Epic Games\\UE_5.5\\Engine\\Source"
+	}
+]

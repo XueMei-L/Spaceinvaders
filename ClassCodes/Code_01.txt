@@ -1,0 +1,91 @@
+
+// Snippet 1
+// Declaracion GameModeBase
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/GameModeBase.h"
+#include "SIGameModeBase.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class SPACEINVADERS_API ASIGameModeBase : public AGameModeBase
+{
+	GENERATED_BODY()
+
+public:
+	ASIGameModeBase();
+	
+};
+
+// Sinppet 2: Implementacion ASIGameModeBase
+
+
+
+#include "SIGameModeBase.h"
+#include "SIPawn.h"
+#include "SIPlayerController.h"
+
+
+ASIGameModeBase::ASIGameModeBase()
+{
+
+	DefaultPawnClass = ASIPawn::StaticClass();
+	PlayerControllerClass = ASIPlayerController::StaticClass();
+}
+
+// Snippet 3: Declaracion Player Controller
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/PlayerController.h"
+#include "SIPlayerController.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class SPACEINVADERS_API ASIPlayerController : public APlayerController
+{
+	GENERATED_BODY()
+
+public:
+
+	ASIPlayerController();
+
+	virtual void BeginPlay() override;
+
+private:
+	UPROPERTY()
+	TArray<class AActor*> m_cameras;
+	FName m_mainCameraTag;
+	
+};
+
+// Snippet 4: Implementacion Player Controller
+
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "SIPlayerController.h"
+#include "Kismet/GameplayStatics.h"
+
+
+ASIPlayerController::ASIPlayerController()
+	: m_mainCameraTag("MainCamera")
+{
+	m_cameras.Reserve(5);
+}
+
+void ASIPlayerController::BeginPlay() {
+	// Set the camera tagged as "MainCamera" as the view target.
+	UGameplayStatics::GetAllActorsWithTag(GetWorld(), m_mainCameraTag, m_cameras);
+	if (m_cameras.Num() > 0)
+		this->SetViewTarget(m_cameras[0]);
+}

@@ -1,0 +1,1709 @@
+1. Movimiento basico del Pawn
+
+// Revisar que SIPawn se deriva de DefaultPawn. Si no es así, y lo tienen derivado de Pawn, hay que cambiar en la declaración de la clase
+
+UCLASS()
+class SPACEINVADERS_API ASIPawn : public ADefaultPawn
+
+y sustituir el include de Pawn.h por:
+
+#include "GameFramework/DefaultPawn.h"
+
+//Entonces hay que compilar. Si compila correctamente deberá observase la malla del Pawn y que puede moverse libremente con las teclas AWSD
+// En la versión 5.3 el sistema de compilación Live Coding da problemas cuando cambiamos el Game Framework de este modo. Si este es el caso,
+// hay que cerrar el editor, eliminar la carpeta de Binarios y arrancar otra vez el proyecto Unreal para que se recompile completo fuera de Live Coding. 
+
+// Ahora hay que incluir en Project Settings, en Input del Engine las acciones SIFire (tecla Space Bar), SIPause (tecla P) y el eje SIRight (tecla D scale 1.0,
+// tecla A scale -1.0)
+
+// Ahora pasamos a incorporar el código necesario para lograr el movimiento del Pawn basado en la componente de movimiento proporcionada por DefaultPawn.
+
+// En la declaracion de SIPawn añadimos un atributo público para establever su velocidad, y que sea editable desde los paneles del editor.
+
+public:
+
+	// Velocity of the pawn
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Defender config")
+	float velocity = 1000.0f;
+
+// Seguimos en la declaración, añadimos declaraciones de métodos para reaccionar a la interacción del usuario en protected.
+// De esta manera una subclase, por ejemplo la derivada en el blueprint, podría implementar los suyos
+// y todavía llamar a los de la clase padre, para ampliar su funcionalidad.
+
+protected:
+
+// Bindings for inputs
+void OnMove(float value);
+
+void OnFire();
+
+void OnPause();
+
+// En la parte privada los atributos booleanos para establecer un estado de inacción del pawn y otro de pausa.
+// Asumimos que esta funcionalidad es enteramente programada en la clase base.
+
+private:
+
+// To set a frozen state (no moving and firing capabilities)
+bool bFrozen;
+
+//To pause the Game
+bool bPause;
+
+
+// Pasamos a SIPawn.cpp. En la implementacion de SIPAwn, sustituimos el constructor por el adecuado para inicializar bFrozen y bPause
+
+ASIPawn::ASIPawn()
+	: bFrozen{ false },
+	bPause{ false }
+{
+	PrimaryActorTick.bCanEverTick = true;
+}
+
+// Continuamos añadiendo la interacción del usuario, haciendo el binding de las acciones y los ejes con las funciones
+// que ofrecen una respuesta a la interacción del usuario
+
+// Called to bind functionality to input
+void ASIPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	PlayerInputComponent->BindAxis(TEXT("SIRight"), this, &ASIPawn::OnMove);
+	PlayerInputComponent->BindAction(TEXT("SIFire"), IE_Pressed, this, &ASIPawn::OnFire);
+	PlayerInputComponent->BindAction(TEXT("SIPause"), IE_Pressed, this, &ASIPawn::OnPause);
+
+}
+
+// Y estas son las funciones mencionadas.
+
+void ASIPawn::OnMove(float value) {
+
+	if (bFrozen)
+		return;
+
+	float deltaTime = GetWorld()->GetDeltaSeconds(); // Tiempo desde la ultima ejecucion del bucle del juego
+
+	float delta = velocity * value * deltaTime;
+	FVector dir = FVector(0.0f, 1.0f, 0.0f);
+
+	AddMovementInput(dir, delta);
+}
+
+// En OnFire, falta código que completaremos después al implementar el disparo.
+
+void ASIPawn::OnFire() {
+	if (bFrozen)
+		return;
+}
+
+void ASIPawn::OnPause() {
+	bPause = !bPause;
+}
+
+// Con esto tenemos el movimiento en el Pawn. En este punto, se puede compilar y probar el movimiento.
+
+2.Disparo del Pawn
+
+// Para que el disparo funcione es necesario primero completar la clase Bullet.
+
+//En el archivo Bullet.h, antes de la declaracion de ABullet creamos un enum class para
+// especificar los dos tipos de munición, asignables a una instancia de Bullet.
+// 
+
+UENUM(BlueprintType)
+enum class BulletType : uint8 {
+	PLAYER = 0 UMETA(DisplayName = "Player Type"),
+	INVADER = 1 UMETA(DisplayName = "Invader Type")
+};
+
+// Ahora reescribimos la clase ABullet para que tenga los atributos y métodos necesarios
+
+UCLASS()
+class SPACEINVADERS_API ABullet : public AActor
+{
+	GENERATED_BODY()
+	
+public:	
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+	BulletType bulletType = BulletType::PLAYER;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class UStaticMeshComponent* Mesh;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector dir;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float velocity;
+
+
+	// Sets default values for this actor's properties
+	ABullet();
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+
+public:	
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION(BlueprintCallable)
+	void SetBulletMesh(class UStaticMesh* staticMesh = nullptr, FString path = TEXT(""), FVector scale = FVector(1.0f, 1.0f, 1.0f));
+
+private:
+
+	static constexpr const TCHAR* defaultStaticMeshPath = TEXT("StaticMesh'/Engine/BasicShapes/Cube.Cube'");
+
+	FName autoDestroyTags[4] = { TEXT("BottomLimit"),TEXT("RightLimit"),TEXT("LeftLimit"),TEXT("TopLimit") };
+
+};
+
+
+// En la implementacion de Bullet
+
+Cambiar el constructor
+
+// Sets default values
+ABullet::ABullet()
+	: bulletType{ BulletType::PLAYER },
+	dir {},
+	velocity {}
+
+{
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>("BaseMeshComponent");
+
+	RootComponent = Mesh; // We need a RootComponent to have a base transform
+	SetBulletMesh();
+
+
+	//Bullets will overlap, blocking behaviour is not desirable
+	Mesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+
+}
+
+
+// Implementacion para establecer una malla estatica que podemos obtener del motor o del content drawer
+// En este caso estamos usando una ruta por defecto definida como una constante en la declaración de la clase
+// El Asset se asigna al componente Mesh que se creó en el constructor
+
+void ABullet::SetBulletMesh(UStaticMesh* staticMesh, FString path, FVector scale) {
+	const TCHAR* tpath;
+	tpath = ABullet::defaultStaticMeshPath; // default route
+	if (!Mesh) // No Mesh component
+		return;
+
+	if (!staticMesh) {
+		if (!path.IsEmpty())
+			tpath = *path;
+		auto MeshAsset = ConstructorHelpers::FObjectFinder<UStaticMesh>(tpath);
+		staticMesh = MeshAsset.Object;
+	}
+	if (staticMesh) {
+		Mesh->SetStaticMesh(staticMesh);
+		Mesh->SetRelativeScale3D(scale);
+
+	}
+}
+
+// El movimiento de la bala no lo vamos a obtener de un componente de movimiento
+// pre-existente, sino que lo vamos a probamar en el método Tick, llamado automáticamente
+// por el motor para este actor, en cada iteración del bucle del juego.
+
+void ABullet::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	FVector location = GetActorLocation();
+	location += DeltaTime * velocity * dir;
+	SetActorLocation(location);
+
+}
+
+// Este método se llama automáticamente por el motor con cada detección de solape entre mallas de colisión.
+// Tenemos un array con las etiquetas de los elementos que forman la frontera de la escena. En el momento en el que
+// la bala se solape con alguna, simplemente se destruye. 
+// La destrucción de la bala en los otros casos (la bala del jugador solapa con el invasor, o la bala del invasor solapa
+// con el jugador, se trata en la detección del solape de los actores mencionados)
+
+void ABullet::NotifyActorBeginOverlap(AActor* OtherActor) {
+	// Debug
+	//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("%s overlaped me"), *(OtherActor->GetName())));
+	for (FName tag : autoDestroyTags)
+		if (OtherActor->ActorHasTag(tag))
+			Destroy();
+
+}
+
+// Includes adicionales  en el archivo de implementation de Bullet Bullet.cpp
+
+#include "Components/StaticMeshComponent.h"
+#include "UObject/ConstructorHelpers.h"
+
+
+// Ahora pasamos a incorporar el código necesario para disparar en el Pawn.
+
+// En la declaación del SIPawn (archivo SIPawn.h)
+
+public:
+
+UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defender config")
+TSubclassOf<class ABullet> bulletClass;
+
+//Audios 
+UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defender config")
+class USoundCue* AudioShoot; // SoundCue para albergar el sonido del disparo.
+
+// Velocity of the player bullets
+UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defender config")
+float bulletVelocity = 3000.0f;
+
+
+
+private:
+UPROPERTY() 
+	class ABullet* bulletTemplate; // Intancia de una bala que se usa como "molde" para un spawning eficiente.
+
+UPROPERTY()
+class UAudioComponent* AudioComponent; // Reproductor de audio del Pawn.
+
+// En la implementacion de SIPawn (Archivo SIPawn.cpp)
+
+// En BeginPlay creamos el bullet template, instancia utilizada para un spawning eficiente.
+// También asignamos el sonido a reproducir en el componente de audio. Como no hay que cambiarlo
+// en esta versión del juego lo hacemos aquí. Si hubiera, más sonidos habría que cambiarlos donde tocara.
+void ASIPawn::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Generate a Bullet Template of the correct class
+	if (bulletClass->IsChildOf<ABullet>())
+		bulletTemplate = NewObject<ABullet>(this, bulletClass);
+	else
+		bulletTemplate = NewObject<ABullet>(this);
+
+	bulletTemplate->bulletType = BulletType::PLAYER;
+
+	if (AudioComponent != nullptr && AudioShoot != nullptr) {
+		AudioComponent->SetSound(AudioShoot);
+	}
+
+}
+
+// Al final del constructor del Pawn hay que crear el componente de audio.
+
+// Audio component
+AudioComponent = CreateDefaultSubobject<UAudioComponent>("Audio");
+AudioComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+
+// Completamos el método OnFire para que se haga el spawning y se reproduzca el sonido.
+
+void ASIPawn::OnFire() {
+	if (bFrozen)
+		return;
+	
+	FVector spawnLocation = GetActorLocation();
+	FRotator spawnRotation = GetActorRotation();
+	ABullet* spawnedBullet;
+	bulletTemplate->velocity = bulletVelocity;
+	bulletTemplate->dir = GetActorForwardVector();
+	FActorSpawnParameters spawnParameters;
+	spawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	spawnParameters.Template = bulletTemplate;
+	spawnedBullet = Cast<ABullet>(GetWorld()->SpawnActor(bulletClass, &spawnLocation, &spawnRotation, spawnParameters));
+
+	AudioComponent->Play();
+
+}
+
+
+//Includes a añadir en APawn.cpp
+
+#include "Components/StaticMeshComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundCue.h"
+
+#include "Bullet.h"
+
+// En este momento ya se puede compilar con Live Coding. Pero antes de ejecutar, hay que configurar correctamente BP_SIPawn, la clase blueprint derivada de SIPawn
+// que debe haber incorporado los nuevos atributos para el disparo después de la compilación. Hay que asignar el parámetro Bullet Class con la clase BP_Bullet,
+// y también el parámetro relativo a Sound Cue. Para esto último recuerden descargase un archivo de sonido, importarlo en el Content Drawer y pulsar el botón derecho
+// para generar un Sound Cue. Este Sound Cue es el asset que deben asignar en BP_SIPawn al parámetro del sonido del disparo.
+
+3. Generación de la escuadra de invasores.
+
+// Para tener invasores autónomos trabajaremos con dos actores. Un actor spawner que AInvaderSquad y un actor AInvader. El actor AInvaderSquad se instanciará pero no
+// tendrá una representación visible en la escena, simplemente servirá para instanciar los invasores, ordenar a estos el movimiento que toca en cada caso, y llevar
+// el control de qué invasores permanecen en la escuadra y cuales no.
+// En esta fase comenzaremos creando AInvaderSquad, AInvader y comprobando la instanciación de la escuadra. En la siguiente fase nos ocuparemos del movimiento y la 
+// comunicación entre los diferentes elementos del juego, lo que supondrá modifcar estas clases y otras.
+
+// Creación de AInvader. Crearemos la clase derivándola de Actor, con el nombre en el editor de Invader para que la clase se denomine AInvader.
+// De momento en esta clase incluirmos los atributos y métodos necesarios para ser instanciado en la escuadra y poder disparar.
+// En el archivo AInvader.h declaramos la clase:
+
+UCLASS()
+class SPACEINVADERS_API AInvader : public AActor
+{
+	GENERATED_BODY()
+	
+public:	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class UStaticMeshComponent* Mesh;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float fireRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float bulletVelocity;
+
+	//Audio
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundCue* AudioShoot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundCue* AudioExplosion;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundCue* AudioJet;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	TSubclassOf<class ABullet> bulletClass;
+
+	// Public Methods
+	
+	// Sets default values for this actor's properties
+	AInvader();
+	
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+
+	UFUNCTION(BlueprintCallable)
+	void SetInvaderMesh(class UStaticMesh* staticMesh = nullptr, const FString path = TEXT(""), FVector scale = FVector(1.0f, 1.0f, 1.0f));
+
+	UFUNCTION(BlueprintCallable)
+	void Fire();
+	
+	UFUNCTION(BlueprintCallable)
+	void SetPositionInSquad(int32 index);
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetPositionInSquad();
+	
+	UFUNCTION(BlueprintCallable)
+	float GetBoundRadius();
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+	
+private:
+
+	UPROPERTY()
+	class ABullet* bulletTemplate;
+
+	// Private Attributes
+	UPROPERTY()
+	class UAudioComponent* AudioComponent;
+	
+	UPROPERTY(VisibleInstanceOnly)
+	int32 positionInSquad;
+
+	UPROPERTY(VisibleInstanceOnly)
+	float timeFromLastShot;
+
+	UPROPERTY(VisibleAnywhere)
+	FName leftSideTag;
+
+	UPROPERTY(VisibleAnywhere)
+	FName rightSideTag;
+
+	UPROPERTY(VisibleAnywhere)
+	FName downSideTag;
+
+	bool bFrozen;
+	bool bPause;
+
+	// Timer to control waiting after destruction
+	FTimerHandle timerHandle;
+
+	UFUNCTION()
+	void InvaderDestroyed();
+
+	UFUNCTION()
+	void PostInvaderDestroyed();
+
+	UPROPERTY(VisibleInstanceOnly)
+	FVector boundOrigin;
+
+	UPROPERTY(VisibleInstanceOnly)
+	float  boundRadius;
+
+
+	// Static literals of the class
+
+	static constexpr const TCHAR* defaultStaticMeshName = TEXT("StaticMesh'/Engine/BasicShapes/Cube.Cube'");
+	static constexpr const TCHAR* leftSideTagString = TEXT("LeftLimit");
+	static constexpr const TCHAR* rightSideTagString = TEXT("RightLimit");
+	static constexpr const TCHAR* downSideTagString = TEXT("BottomLimit");
+
+};
+
+// Ahora pasamos a la implementación necesaria.
+
+// Primero el constructor de la clase
+
+AInvader::AInvader()
+: fireRate {0.0001f}
+, bulletVelocity{3000.0f}
+, bulletClass {ABullet::StaticClass()}
+, positionInSquad{}
+, timeFromLastShot{}
+, leftSideTag {FName(AInvader::leftSideTagString)}
+, rightSideTag {FName(AInvader::rightSideTagString)}
+, downSideTag {FName(AInvader::downSideTagString)}
+, bFrozen {false}
+, bPause {false}
+{
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+
+	
+	// Create Components in actor
+
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>("BaseMeshComponent");
+	RootComponent = Mesh; // We need a RootComponent to have a base transform
+
+	SetInvaderMesh();
+
+	// Audio component
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>("Audio");
+	AudioComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+	
+}
+
+// Ahora el método SetInvaderMesh para buscar el asset de la malla estática y asignarlo al componente.
+// En este caso también se asigna el boundOrigin y boundRadius que son variables importantes para
+// establecer la separación entre invasores en el momento que queramos construir la escuadra.
+// Esos valores se obtienen de la propia malla (atributo Bounds)
+
+void AInvader::SetInvaderMesh(UStaticMesh* newStaticMesh, const FString path, FVector scale) {
+	const TCHAR* tpath;
+	tpath = AInvader::defaultStaticMeshName; // default route
+	if (!Mesh) // No Mesh component
+		return;
+
+	if (!newStaticMesh) {
+		if (!path.IsEmpty())
+			tpath = *path;
+		auto MeshAsset = ConstructorHelpers::FObjectFinder<UStaticMesh>(tpath);
+		newStaticMesh = MeshAsset.Object;
+	}
+	if (newStaticMesh) {
+		Mesh->SetStaticMesh(newStaticMesh);
+		Mesh->SetRelativeScale3D(scale);
+		FBoxSphereBounds meshBounds = Mesh->Bounds;
+		boundOrigin = meshBounds.Origin;
+		boundRadius = meshBounds.SphereRadius;
+	}
+}
+
+// Método BeginPlay. Creamos un template para Bullet, de modo que podamos hacer un spawn eficiente de las balas.
+
+// Called when the game starts or when spawned
+void AInvader::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Generate a Bullet Template of the correct class
+	if (bulletClass->IsChildOf<ABullet>())
+		bulletTemplate = NewObject<ABullet>(this, bulletClass->GetFName(), RF_NoFlags, bulletClass.GetDefaultObject());
+	else
+		bulletTemplate = NewObject<ABullet>();
+
+	bulletTemplate->bulletType = BulletType::INVADER;
+
+}
+
+// Método Tick. Desde aquí se determina aleatoriamente el disparo. A medida que transcurre el tiempo sin disparar
+// más probable se vuelve el disparo.
+
+// Called every frame
+void AInvader::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	this->timeFromLastShot += DeltaTime;
+
+	// Fire?
+	float val = FMath::RandRange(0.0f, 1.0f);
+	if (!bFrozen && val < (1.0 - FMath::Exp(-fireRate * this->timeFromLastShot)))
+		Fire();
+
+}
+
+// Método Fire
+
+void AInvader::Fire() {
+
+	FVector spawnLocation = GetActorLocation();
+	FRotator spawnRotation = GetActorRotation();
+	ABullet* spawnedBullet;
+	if (this->bulletTemplate) {
+		this->bulletTemplate->velocity = bulletVelocity;
+		this->bulletTemplate->dir = GetActorForwardVector();
+		FActorSpawnParameters spawnParameters;
+		spawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		spawnParameters.Template = this->bulletTemplate;
+		spawnedBullet = (ABullet*)GetWorld()->SpawnActor<ABullet>(spawnLocation, spawnRotation, spawnParameters);
+
+		if (AudioComponent != nullptr && AudioShoot != nullptr) {
+			AudioComponent->SetSound(AudioShoot);
+			AudioComponent->Play();
+		}
+
+		this->timeFromLastShot = 0.0f;
+	}
+}
+
+// Método NotifyActorBeginOverlap
+// De momento solo consideraremos el overlap de las balas de la nave defensora.
+
+void AInvader::NotifyActorBeginOverlap(AActor* OtherActor) {
+	// Debug
+	//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::Printf(TEXT("%s entered me"), *(OtherActor->GetName())));
+	FName actorTag;
+	
+	if (bFrozen) // If it is already a zombie invader nothing happens.
+		return;
+
+	UClass* otherActorClass = OtherActor->GetClass();
+
+	//First, bullet cases
+	if (OtherActor->IsA(ABullet::StaticClass())) { // Reflection!
+		ABullet* bullet = Cast<ABullet>(OtherActor);
+		if (bullet->bulletType == BulletType::PLAYER) {
+			//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("Invader %d killed"), this->positionInSquad));
+
+			OtherActor->Destroy();
+			InvaderDestroyed();
+			return;
+		}
+		else
+			return; //It's an invader bullet, so it has to be ignored
+	}
+
+	// OVerlap with other Invader is ignored
+	if (OtherActor->IsA(AInvader::StaticClass()))
+		return;
+}
+
+// Métodos InvaderDestroyed() y PostInvaderDestroyed(). La destrucción del invasor hay que hacerla en dos partes para
+// dar tiempo a la reproducción de los efectos necesarios.
+
+void AInvader::InvaderDestroyed() {
+	UWorld* TheWorld;
+	TheWorld = GetWorld(); // To get utilities as the timer.
+
+
+	if (TheWorld) {
+		bFrozen = true; // Invader can'tmove or fire while being destroyed
+
+		UStaticMeshComponent* LocalMeshComponent = Cast<UStaticMeshComponent>(GetComponentByClass(UStaticMeshComponent::StaticClass()));
+		// Hide Static Mesh Component
+		if (LocalMeshComponent != nullptr) {
+			LocalMeshComponent->SetVisibility(false);
+		}
+		//Audio
+		if (AudioComponent != nullptr && AudioExplosion != nullptr) {
+			AudioComponent->SetSound(AudioExplosion);
+			AudioComponent->Play();
+		}
+		// Wait:
+		TheWorld->GetTimerManager().SetTimer(timerHandle, this, &AInvader::PostInvaderDestroyed, 2.0f, false);
+	}
+}
+void AInvader::PostInvaderDestroyed() {
+	Destroy();
+
+}
+
+// Ahora la implementación de métodos auxiliares para leer y establecer el índice del invasor dentro de la escudra
+// y para saber el radio de ocupación.
+
+void AInvader::SetPositionInSquad(int32 index)
+{
+	this->positionInSquad = index;
+}
+
+int32 AInvader::GetPositionInSquad()
+{
+	return int32(this->positionInSquad);
+}
+
+float AInvader::GetBoundRadius() {
+	return this->boundRadius;
+}
+
+
+// Ahora podemos añadir las cabeceras al principio de Invader.cpp
+#include "Invader.h"
+#include "Bullet.h"
+
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundCue.h"
+
+// En este punto podemos compilar y derivar una clase blueprit desde la clase Invader, con el nombre BP_Invader. 
+// En esta clase blueprint podremos configurar los parámetros básicos, la malla a utilizar etcétera.
+// No podemos probarlo en el juego todavía porque necesitamos una clase spawner, InvaderSquad que cree a los invasores.
+
+// Creación de AInvaderSquad. Crearemos la classe derivándola de Actor, con el nombre en el editor de InvaderSquad para que la clase se denomine AInvaderSquad.
+// En el archivo AInvaderSquad.h declaramos la clase:
+
+UCLASS()
+class SPACEINVADERS_API AInvaderSquad : public AActor
+{
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY()
+	class USceneComponent* Root;
+
+	AInvaderSquad();
+
+
+public:
+
+	
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+
+protected:
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad Spawner")
+	TSubclassOf<class AInvader> invaderClass;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad Spawner")
+	int32 nRows;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad Spawner")
+	int32 nCols;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad Spawner")
+	float extraSeparation;
+		
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TArray<class AInvader*> SquadMembers;
+
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+	virtual void Destroyed() override;
+
+
+private:
+
+
+	int32 numberOfMembers;
+
+	UPROPERTY()
+	class AInvader* invaderTemplate;
+
+
+	// Values for initializing defaults
+	static const int32 defaultNRows = 1;
+	static const int32 defaultNCols = 1;
+	static  constexpr const float defaultHorizontalVelocity = 1000.0f;
+	static  constexpr const float defaultVerticalVelocity = 1000.0f;
+	static  constexpr const float defaultExtraSeparation = 0.0f;
+
+
+};
+
+// Ahora la implementación, primero el constructor. En cuanto a los componentes solo necesitamos un componente de escena
+// para que tenga una transformación geométrica y sea ubicable en el mundo
+
+AInvaderSquad::AInvaderSquad()
+	: nRows{ AInvaderSquad::defaultNRows }
+	, nCols{ AInvaderSquad::defaultNCols }
+	, extraSeparation(AInvaderSquad::defaultExtraSeparation)
+	, numberOfMembers{ nRows * nCols }
+{
+	PrimaryActorTick.bCanEverTick = true;
+	
+	// Create Components in actor
+
+	Root = CreateDefaultSubobject<USceneComponent>("Root");
+	RootComponent = Root; // We need a RootComponent to have a base transform
+	
+}
+
+// El método BeginPlay es el más importante porque es aquí donde se hace el spawning de los invasores
+// Called when the game starts or when spawned
+void AInvaderSquad::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Set Invader Template with Default Value for invaderClass
+	if (invaderClass->IsChildOf<AInvader>())
+		invaderTemplate = NewObject<AInvader>(this, invaderClass->GetFName(), RF_NoFlags, invaderClass.GetDefaultObject());
+	else
+		invaderTemplate = NewObject<AInvader>();
+	
+	//Spawn Invaders
+
+	FVector actorLocation = GetActorLocation();
+	FVector spawnLocation = actorLocation;
+	FRotator spawnRotation = FRotator(0.0f, 180.0f, 0.0f); // Invader Forward is oposite to Player Forward (Yaw rotation)
+	FActorSpawnParameters spawnParameters;
+	int32 count = 0;
+	AInvader* spawnedInvader;
+	float radiusX = 0.0f;
+	float radiusY = 0.0f;
+	for (int i = 0; i < this->nCols; i++)
+	{
+		for (int j = 0; j < this->nRows; j++)
+		{
+			//invaderTemplate->SetPositionInSquad(count);
+
+			spawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			spawnParameters.Template = invaderTemplate;
+			spawnedInvader = GetWorld()->SpawnActor<AInvader>(spawnLocation, spawnRotation, spawnParameters);
+			spawnedInvader->SetPositionInSquad(count);
+			++count;
+			SquadMembers.Add(spawnedInvader);
+			float r = spawnedInvader->GetBoundRadius();
+			if (r > radiusX)
+				radiusX = r;
+			if (r > radiusY)
+				radiusY = r;
+			spawnLocation.X += radiusX * 2 + this->extraSeparation;
+		}
+		spawnLocation.X = actorLocation.X;
+		spawnLocation.Y += radiusY * 2 + this->extraSeparation;
+	}
+
+	this->numberOfMembers = count;
+
+}
+
+// El método Tick de momento lo dejamos con la funcionalidad mínima por defecto,
+// cuando incorporemos el movimiento sí habrá que utilizarlo
+
+// Called every frame
+void AInvaderSquad::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+// Override del método Destroyed para eliminar correctamente una escuadra
+
+void AInvaderSquad::Destroyed() {
+	for (AInvader* invader : SquadMembers) {
+		if (invader != nullptr)
+			invader->Destroy();
+	}
+	Super::Destroyed();
+
+}
+
+// Ahora podemos poner las cabeceras necesarias en InvaderSquad.cpp
+
+#include "InvaderSquad.h"
+#include "Invader.h"
+
+#include "Kismet/GameplayStatics.h"
+
+//Ahora podemos compilar. A continuación hay que derivar una blueprint class BP_InvaderSquad de InvaderSquad y configurar el parámetro de la Invader Class con BP_Invader.
+// Todavía no se va a representar en el juego porque de momento no hay nadie que spawnee a InvaderSquad. Para ello debemos modificar la clase ASIGameModeBase
+
+// En la declaración (archivo SIGameModeBase.h)
+
+public:
+
+	//------------------------------------------------
+	//Spawned squad
+	//------------------------------------------------
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level Layout")
+	TSubclassOf<class AInvaderSquad> InvaderSquadClass;
+
+	//------------------------------------------------
+	//Point where the squad is spawned at
+	//---------------------------------------------
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Level Layout")
+	FVector spawnLocation;
+	
+	UFUNCTION(BlueprintCallable)
+	void RegenerateSquad();
+	
+protected:
+
+	virtual void BeginPlay() override;
+
+private:
+
+	UPROPERTY(VisibleAnywhere)
+	AInvaderSquad* spawnedInvaderSquad;
+
+
+// En la implementación
+
+// En el constructor damos valores por defecto
+
+
+ASIGameModeBase::ASIGameModeBase()
+	: spawnLocation{ }
+	, spawnedInvaderSquad{}
+
+{
+
+	DefaultPawnClass = ASIPawn::StaticClass();
+	PlayerControllerClass = ASIPlayerController::StaticClass();
+	InvaderSquadClass = AInvaderSquad::StaticClass();
+
+}
+
+// En BeginPlay ordenamos la generación de una InvaderSquad
+
+void ASIGameModeBase::BeginPlay() {
+
+	Super::BeginPlay();
+
+	//Spawn a squad of invaders
+
+	RegenerateSquad();
+
+}
+
+// La generación de la escudra se ordena en RegenerateSquad()
+// En este caso hacemos spawn no a partir de un template, sino de la UClass con los valores
+// por defecto.
+
+void ASIGameModeBase::RegenerateSquad() {
+
+	if (this->spawnedInvaderSquad != nullptr)
+		this->spawnedInvaderSquad->Destroy();
+	if (InvaderSquadClass) {
+		this->spawnedInvaderSquad = Cast<AInvaderSquad>(GetWorld()->SpawnActor(InvaderSquadClass, &spawnLocation));
+	}
+}
+
+// Finalmente las cabeceras para SIGameModeBase.cpp serian
+
+#include "SIGameModeBase.h"
+#include "SIPawn.h"
+#include "SIPlayerController.h"
+#include "InvaderSquad.h"
+
+// En este punto podemos compilar. En BP_SIGameModeBase (clase blueprint derivada de SIGameModeBase) podremos ahora configurar la clase BP_InvaderSquad em el atributo Invader Squad Class y establecer
+// tambien el punto de spawning en Spawn Location. Las coordenadas deben situar este punto en el extremo superior izquierdo a la misma altura en z que la nave defensora. Ahora podemos ejecutar
+// el juego y comprobar si los disparos de la nave defensora pueden acertar a las naves de la escuadra.
+
+4. Movimiento de la escuadra
+
+// Todo el movimiento de la escuadra se basa en un componente de movimiento derivado de UMovementComponent que se incorporar'a al invasor. 
+// Este componente debe comenzarse en el editor derivando una clase C++ de Movement Component. y denominarse InvaderMovementComponent para
+// obtener la clase UInvaderMovementComponent. No es un Actor, sino un UObject.
+
+// Comenzamos con la declaración de la clase
+
+//Antes de la declaración de clase UCLASS añadimos un enum class con los diferentes tipos
+
+UENUM(BlueprintType)
+enum class InvaderMovementType : uint8 {
+
+
+	STOP = 0 UMETA(DisplayName = "Stopped"),
+	RIGHT = 1 UMETA(DisplayName = "Right"),
+	LEFT = 2 UMETA(DisplayName = "Left"),
+	DOWN = 3 UMETA(DisplayName = "Down"),
+	FREEJUMP = 4 UMETA(DisplayName = "Free Jump")
+
+
+};
+
+// Ahora hacemos la declaración de la clase
+
+UCLASS()
+class SPACEINVADERS_API UInvaderMovementComponent : public UMovementComponent
+{
+	GENERATED_BODY()
+
+public:
+	// Sets default values for this component's properties
+	UInvaderMovementComponent();
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite,Category="Invader Movement")
+	float horizontalVelocity;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Invader Movement")
+	float verticalVelocity;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Invader Movement")
+	InvaderMovementType state;
+
+
+	// Down movement parameters:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Invader Movement")
+	float descendingStep; // Length of the descending step
+
+
+	// Free jump parameters:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Invader Movement")
+	TArray<FTransform> targetPoints; // The movement will be composed by interpolation using a sequence of reference poses stored in this array.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Invader Movement")
+	int32 numberOfTargetPoints;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Invader Movement")
+	float freeJumpRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Invader Movement")
+	float freeJumpVelocity; // Velocity in the first stage of the free jump
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Invader Movement")
+	float deltaAlphaInterpolation; //1/(Number of updates between two target points)
+
+public:
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+
+protected:
+
+
+	// Called when the game starts
+	virtual void BeginPlay() override;
+
+	UFUNCTION(BlueprintCallable)
+	void GenerateTargetPoints();
+
+	UFUNCTION(BlueprintCallable)
+	FTransform InterpolateWithTargetPoints(FTransform transform, float covered);
+
+
+
+private:
+
+	InvaderMovementType previousState; // Store state in previous frame (to know when a state is beginning)
+
+	// Down movement state variables:
+	float descendingProgress = 0.0f; // Store progress in the Down state
+
+	// Free jump movement state variables:
+	FTransform originTransform;
+	float alphaInterpolation;
+	int32 currentTargetPoint = 0; // It stores the index of the first reference pose (the other is currentTargetPoint+1)
+	float finalAngle; // Orientation of the invader to start the final attack
+	
+	
+	
+};
+
+// Ahora el constructor donde inicializamos parámetros
+
+UInvaderMovementComponent::UInvaderMovementComponent()
+: state {InvaderMovementType::STOP}
+, horizontalVelocity {1000.0f}
+, verticalVelocity {1000.0f}
+, descendingStep {100.0f}
+, freeJumpRadius {300.0f}
+, freeJumpVelocity {1000.0f}
+, deltaAlphaInterpolation {1.0f/30.0f}
+, numberOfTargetPoints {5}
+, previousState {InvaderMovementType::STOP}
+{
+	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
+	// off to improve performance if you don't need them.
+	PrimaryComponentTick.bCanEverTick = true;
+
+}
+
+// BeginPlay. Se inicializa el ángulo de ataque final
+// en una maniobra de freejump.
+
+// Called when the game starts
+// Set pointer to GameMode to call delegates
+void UInvaderMovementComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	
+	finalAngle = FMath::RandRange(-30.0f, 30.0f);
+
+}
+
+// Funciones auxiliares para el movimiento de Free Jump: creamos una serie de puntos de referencia para describir la
+// trayectoria a realizar
+
+
+// Generate a sequence of geometric transformation to perform a circular trajectory
+void UInvaderMovementComponent::GenerateTargetPoints() {
+
+	AActor* Parent = GetOwner();
+	FTransform initialTransform;
+	FVector initialLocation;
+	FVector initialScale;
+
+	FQuat initialQuaternion;
+	FVector forward;
+
+	if (!Parent) {
+		numberOfTargetPoints = 0;
+		return;
+	}
+
+	initialTransform = Parent->GetActorTransform();
+	initialLocation = initialTransform.GetLocation();
+	initialScale = initialTransform.GetScale3D();
+	initialQuaternion = initialTransform.GetRotation();
+	forward = Parent->GetActorForwardVector();
+
+
+
+
+	// The first stage movement is a circle
+	// Calculate center of the circle from actor location
+	float radio = freeJumpRadius;
+	FVector center = initialLocation;
+	
+	center.X += radio;
+
+	if (numberOfTargetPoints > 0) {
+		float theta = 0.0f; // Ángulo a avanzar en cada punto de referencia.
+		float deltaTheta = 2 * PI / numberOfTargetPoints;
+
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::Printf(TEXT("X is %g Y is %g"), initialLocation.X, initialLocation.Y));
+
+		FVector newLocation = initialLocation;
+		FRotator rotation;
+		FTransform newTransform = initialTransform;
+		for (int32 i = 0; i < numberOfTargetPoints; i++) {
+
+			float pc = FMath::Cos(theta);
+			float ps = FMath::Sin(theta);
+
+			newLocation.X = center.X - radio * FMath::Cos(theta);
+			newLocation.Y = center.Y + radio * FMath::Sin(theta);
+			newTransform.SetLocation(newLocation);
+
+			// Change the rotation of the actor to follow the tangent of the circle
+			if (i != (numberOfTargetPoints - 1)) {
+				// FRotator requires angles in degrees!
+				// Rotation is in Yaw. The following angle makes the invader to follow the tangent
+				rotation = FRotator(0.0f, -(theta * 180.0f / PI) - 90, 0.0f);
+				FQuat newQuaternion = rotation.Quaternion() * initialQuaternion;
+				newTransform.SetRotation(newQuaternion);
+			}
+			else // Last point set the invader with the initial transformation
+				newTransform.SetRotation(initialQuaternion); //Last transformation 
+			targetPoints.Add(newTransform);
+			theta += deltaTheta;
+		}
+
+	}
+
+}
+
+// The purpose of having target points is getting the transformations to apply in the trajectory through interpolation
+// The following function performs the interpolation
+
+FTransform UInvaderMovementComponent::InterpolateWithTargetPoints(FTransform origin, float fraction) {
+
+	FVector originLocation = origin.GetLocation();
+	FQuat originRotation = origin.GetRotation();
+	FVector targetLocation;
+	FQuat targetRotation;
+	if (currentTargetPoint >= 0 && currentTargetPoint < numberOfTargetPoints) {
+		targetLocation = targetPoints[currentTargetPoint].GetLocation();
+		targetRotation = targetPoints[currentTargetPoint].GetRotation();
+	}
+	else
+		return origin;
+
+	// Location interporlation for vectors
+	FVector newLocation = UKismetMathLibrary::VLerp(originLocation, targetLocation, fraction);
+	// Spherical interpolation for quaterions
+	FQuat newRotation = FQuat::Slerp(originRotation, targetRotation, fraction);
+
+	FTransform newTransform = origin;
+	newTransform.SetLocation(newLocation);
+	newTransform.SetRotation(newRotation);
+	return newTransform;
+}
+
+// Now all these things are used in the TickComponentFunction when the state is FREEJUMP
+
+void UInvaderMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	AActor* Parent = GetOwner(); //Parent is the actor who owns this component.
+
+	if (!Parent)
+		return;
+
+	float deltaHorizontal = horizontalVelocity * DeltaTime; // Increment in horizontal and vertical dimensions given DeltaTime and parameterized velocities
+	float deltaVertical = verticalVelocity * DeltaTime;
+
+	float deltaX = 0.0f; // These deltas determine the change of the actor position
+	float deltaY = 0.0f;
+
+	// deltaX and deltaY are calculated differently for each movement type
+	// The movement type is in the public variable state
+	// previousState is updated
+	switch (state) {
+
+	case InvaderMovementType::STOP:
+		deltaX = 0.0f; //No variation if STOP
+		deltaY = 0.0f;
+		previousState = InvaderMovementType::STOP;
+		break;
+
+	case InvaderMovementType::RIGHT:
+		
+		deltaX = 0.0f;
+		deltaY = deltaHorizontal;
+
+		previousState = InvaderMovementType::RIGHT;
+		break;
+
+	case InvaderMovementType::LEFT:
+		
+		deltaX = 0.0f;
+		deltaY = -deltaHorizontal;
+		previousState = InvaderMovementType::LEFT;
+		break;
+
+		// Down movement: this is an automatic movement that has to finish automatically
+		// It is based on an internal variable, descendinfProgress, that is updated.
+
+	case InvaderMovementType::DOWN:
+		if (previousState != InvaderMovementType::DOWN)
+			descendingProgress = 0.0f; // This means  that the down phase is starting
+		if (descendingProgress > descendingStep) {
+			deltaVertical = 0.0f; // This means that the down phase stops
+			
+		}
+		
+		deltaX = -deltaVertical;
+		deltaY = 0.0f;
+		descendingProgress += deltaVertical;
+		previousState = InvaderMovementType::DOWN;
+		break;
+
+		// Free jump movement: this is an automatic complex movement.
+
+	case InvaderMovementType::FREEJUMP:
+
+		
+		deltaX = 0.0f; // This movement is not based on deltaX, deltaY, but in general transformations
+		deltaY = 0.0f;
+
+		if (previousState != InvaderMovementType::FREEJUMP) { // First time we enter in FREEJUMP
+			GenerateTargetPoints();
+			currentTargetPoint = 0;
+			if (numberOfTargetPoints > 0) {
+				originTransform = Parent->GetActorTransform(); // First originTransform for interpolation is actor transform
+				alphaInterpolation = 0.0f;
+
+			}
+
+			previousState = InvaderMovementType::FREEJUMP;
+		}
+
+		// Now the movement is programatically defined.
+		// There are two stages:
+		// First stage: an automatic movement defined by a sequence of target transforms
+		// currentTargetPoint is the index of the current transform
+		if (currentTargetPoint < numberOfTargetPoints) {
+			FTransform newtransform = InterpolateWithTargetPoints(originTransform, alphaInterpolation); // New transform calculated by interpolation between current and currentTargetPoint.
+			// The actor receive the new transform					
+			Parent->SetActorTransform(newtransform);
+
+			alphaInterpolation += deltaAlphaInterpolation;
+			if (alphaInterpolation > 1.0f) { // target has been reached with interpolation
+				++currentTargetPoint;
+				alphaInterpolation = 0.0f; // To start a new segment of linear interpolation
+
+
+				if (currentTargetPoint < numberOfTargetPoints) // new originTransform is previous target
+					originTransform = this->targetPoints[currentTargetPoint - 1];
+				// If this was the last target we add a random rotation that it will define the direction of the movement in the second stage of the free jump
+				else {
+					Parent->AddActorLocalRotation(FRotator(0.0f, finalAngle, 0.0f));
+				}
+
+			}
+
+
+		}
+
+		// Second stage: the actor is simply moved in the forward direction 
+
+		else {
+
+			FVector parentLocation = Parent->GetActorLocation();
+			FVector forward = Parent->GetActorForwardVector();
+			FVector right = Parent->GetActorRightVector();
+			parentLocation += freeJumpVelocity * DeltaTime * forward;
+
+			Parent->SetActorLocation(parentLocation);
+
+
+		}
+	}
+
+	// Apply calculated deltaX deltaY for those movements based on them
+	if (Parent && state != InvaderMovementType::FREEJUMP) {
+
+		FVector parentLocation = Parent->GetActorLocation();
+		parentLocation.X += deltaX;
+		parentLocation.Y += deltaY;
+		Parent->SetActorLocation(parentLocation);
+
+	}
+}
+
+
+// Añadimos los includes necesarios en InvaderMovementComponent.cpp
+
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
+
+// Tenemos que incorporar ahora el componente de movimiento a la clase AInvader
+
+// En la parte public de AInvader
+
+UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	class UInvaderMovementComponent* Movement;
+
+
+// En el constructor
+
+Movement = CreateDefaultSubobject<UInvaderMovementComponent>("InvaderMoveComponent");
+AddOwnedComponent(Movement); // Because UInvaderMovementComponent is only an Actor Component and not a Scene Component can't Attach To.
+
+
+// En el método Tick después de la llamada a Super::Tick, forzamos la parada  en caso de que Invader esté frozen.
+
+if (bFrozen) { //Frozing the invader when is shooted down
+		Movement->state = InvaderMovementType::STOP;
+		return;
+}
+
+// Las cabeceras de Invader.cpp deben ser ahora
+
+#include "Invader.h"
+#include "Bullet.h"
+#include "InvaderMovementComponent.h"
+#include "SIGameModeBase.h"
+
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundCue.h"
+
+// Ahora actualizamos AInvaderSquad para controlar el movimiento de los invasores que forman la escudra
+// En la declaración
+
+// Antes del comienzo de UCLASS una declaración forward de un enum class
+
+enum class InvaderMovementType : uint8;
+
+// En la declaración de la UCLASS en la parte pública los atributos relacionados con el movimiento
+
+UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad movement")
+	InvaderMovementType state;
+
+UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "Squad movement")
+	InvaderMovementType previousState;
+
+UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad movement")
+	float freeJumpRate;
+
+UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad movement")
+	float horizontalVelocity;
+
+UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad movement")
+	float verticalVelocity;
+	
+
+
+
+
+// ... y la actualización del estado de movimiento con el método UpdateSquadState
+UFUNCTION(BlueprintCallable)
+	void UpdateSquadState(float delta);
+
+// .. en la parte privada
+
+float timeFromLastFreeJump;
+
+	
+// En la implementación. 
+// En el constructor añadir a la lista de inicialización de miembros de la clase
+
+	, state{ InvaderMovementType::STOP }
+	, previousState{ InvaderMovementType::STOP }
+	, freeJumpRate{ 0.0001 }
+	, horizontalVelocity { 300.0 }
+	, verticalVelocity { 300.0 }
+
+// Al final de BeginPlay
+
+this->state = InvaderMovementType::RIGHT; // Start with Right phase
+
+// Añadimos la nueva función para actualizar el estado tras cada Tick del bucle del juego
+
+void AInvaderSquad::UpdateSquadState(float delta) {
+
+	TArray<AInvader*> survivors;
+
+	for (auto invader : SquadMembers) {
+		//------------------------------------
+		if (invader) { // very important, first nullptr is checked!.
+
+			// First, we get de movement component
+			UInvaderMovementComponent* imc = (UInvaderMovementComponent*)invader->GetComponentByClass(UInvaderMovementComponent::StaticClass());
+
+			// Now, its state is updated
+			if (imc) {
+				if (imc->state != InvaderMovementType::FREEJUMP){
+					survivors.Emplace(invader);
+					imc->horizontalVelocity = horizontalVelocity;
+					imc->verticalVelocity = verticalVelocity;
+					imc->state = state;
+					}
+			}
+		}
+
+		//------------------------------------
+	}
+	this->timeFromLastFreeJump += delta;
+	float val = FMath::RandRange(0.0f, 1.0f);
+	int32 countSurvivors = survivors.Num();
+	if (countSurvivors > 0 && val < (1.0 - FMath::Exp(-freeJumpRate * this->timeFromLastFreeJump))) {
+		int32 ind = FMath::RandRange(0, countSurvivors - 1); // Randomly select one of the living invaders
+		UInvaderMovementComponent* imc = (UInvaderMovementComponent*)survivors[ind]->GetComponentByClass(UInvaderMovementComponent::StaticClass());
+		if (imc) {
+			//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::Printf(TEXT("%s on FreeJump"), *(imc->GetName())));
+			survivors[ind]->fireRate *= 100;
+			imc->state = InvaderMovementType::FREEJUMP;
+		}
+	}
+}
+
+// Lo aplicamos en la función Tick que queda de este modo
+
+// Called every frame
+void AInvaderSquad::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	UpdateSquadState(DeltaTime);
+
+}
+
+// Ahora laa cabeceras tienen que ser
+#include "InvaderSquad.h"
+#include "InvaderMovementComponent.h"
+#include "Invader.h"
+#include "SIGameModeBase.h"
+
+
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundCue.h"
+
+// Compilamos. Tenemos que configurar la propidad Invade Movement Component en la clase BP_Invader. Ejecutamos. Como vemos al llegar al extremo derecho no ocurre nada
+// porque no hemos programado la coordinación. 
+
+5. Coordinación
+
+5.a Creación de delegados
+
+// Primero anotamos los tipos de delegados en SIGameModeBase.h antes de la declaración de UCLASS
+
+// Delegates of this game:
+DECLARE_DELEGATE(FStandardDelegateSignature)
+DECLARE_MULTICAST_DELEGATE_OneParam(FOneParamMulticastDelegateSignature, int32);
+DECLARE_DELEGATE_OneParam(FOneParamDelegateSignature, int32)
+
+// Declaramos los delegados en la parte public de la clase ASIGameModeBase
+
+FStandardDelegateSignature SquadOnLeftSide; // Invader-> Squad 
+FStandardDelegateSignature SquadOnRightSide; // Invader -> Squad
+FStandardDelegateSignature SquadFinishesDown; // Invader -> Squad
+FStandardDelegateSignature SquadSuccessful; // Invader -> GameMode, Player
+FOneParamMulticastDelegateSignature InvaderDestroyed; // Invader -> Squad Invader->Player
+
+FOneParamDelegateSignature NewSquad; // Squad -> Game Mode, Player 
+FStandardDelegateSignature PlayerZeroLifes; // Player -> Game Mode
+
+
+5.b Funciones que hacen binding con los delegados
+
+// En SIGameModeBase solo tenemos OnNewSquad. En la declaración
+
+public:
+UFUNCTION(BlueprintCallable)
+	void RegenerateSquad();
+
+protected:
+// Delegate bindings
+UFUNCTION(BlueprintCallable)
+	void OnNewSquad(int32 lifes);
+
+//En la implementación
+
+void ASIGameModeBase::RegenerateSquad() {
+
+	if (this->spawnedInvaderSquad != nullptr)
+		this->spawnedInvaderSquad->Destroy();
+	if (InvaderSquadClass) {
+		
+		AInvaderSquad* squad = Cast<AInvaderSquad>(InvaderSquadClass->GetDefaultObject());
+				this->spawnedInvaderSquad = Cast<AInvaderSquad>(GetWorld()->SpawnActor(InvaderSquadClass, &spawnLocation));
+	
+	}
+}
+
+void ASIGameModeBase::OnNewSquad(int32 lifes) {
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("Nueva escuadra")));
+	RegenerateSquad();
+}
+
+// Ahora el binding del delgado con la función BeginPlay
+
+// Delegate bindings:
+	this->NewSquad.BindUObject(this, &ASIGameModeBase::OnNewSquad);
+
+
+// En AInvaderSquad, en la declaración
+
+private:
+
+	void SquadOnLeftSide();
+
+	void SquadOnRightSide();
+
+	void SquadFinishesDown();
+
+	void RemoveInvader(int32 ind);
+
+	UPROPERTY()
+		class ASIGameModeBase* MyGameMode;
+
+// En la implementacion
+
+// La escuadra llega al lado derecho
+
+void AInvaderSquad::SquadOnRightSide() {
+	previousState = InvaderMovementType::RIGHT;
+	state = InvaderMovementType::DOWN;
+}
+
+// La escuadra llega al lado izquierdo
+
+void AInvaderSquad::SquadOnLeftSide() {
+	previousState = InvaderMovementType::LEFT;
+	state = InvaderMovementType::DOWN;
+}
+
+// Cada vez que un invasor completa el movimiento de descenso
+
+void AInvaderSquad::SquadFinishesDown() {
+	static int32 countActions = 0;
+	++countActions;
+	if (countActions >= numberOfMembers) {
+
+		countActions = 0;
+		switch (previousState) {
+		case InvaderMovementType::RIGHT:
+			state = InvaderMovementType::LEFT;
+			break;
+		case InvaderMovementType::LEFT:
+			state = InvaderMovementType::RIGHT;
+			break;
+		default:
+			state = InvaderMovementType::STOP;
+
+		}
+	}
+}
+
+
+void AInvaderSquad::RemoveInvader(int32 ind) {
+	SquadMembers[ind] = nullptr;
+	--this->numberOfMembers;
+	if (this->numberOfMembers == 0) {
+		if (MyGameMode != nullptr) {
+			MyGameMode->NewSquad.ExecuteIfBound(1); // parameter larger than 0 to avoid finishing game!
+
+		}
+	}
+}
+
+// Ahora el Binding en BeginPlay
+
+UWorld* TheWorld = GetWorld();
+
+// Bind to delegates
+if (TheWorld != nullptr) {
+	AGameModeBase* GameMode = UGameplayStatics::GetGameMode(TheWorld);
+	MyGameMode = Cast<ASIGameModeBase>(GameMode);
+	if (MyGameMode != nullptr) {
+		MyGameMode->SquadOnRightSide.BindUObject(this, &AInvaderSquad::SquadOnRightSide);
+		MyGameMode->SquadOnLeftSide.BindUObject(this, &AInvaderSquad::SquadOnLeftSide);
+		MyGameMode->SquadFinishesDown.BindUObject(this, &AInvaderSquad::SquadFinishesDown);
+		MyGameMode->InvaderDestroyed.AddUObject(this, &AInvaderSquad::RemoveInvader);
+	}
+}
+
+5.3 Ahora la producción de eventos (llamadas a execute de los delegados)
+
+// En AInvader, en la implementación:
+
+void AInvader::NotifyActorBeginOverlap(AActor* OtherActor) {
+	// Debug
+	//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::Printf(TEXT("%s entered me"), *(OtherActor->GetName())));
+	FName actorTag;
+	if (bFrozen) // If it is already a zombie invader nothing happens.
+		return;
+
+	UWorld* TheWorld = GetWorld();
+	if (TheWorld != nullptr) {
+		UInvaderMovementComponent* imc = (UInvaderMovementComponent*)this->GetComponentByClass(UInvaderMovementComponent::StaticClass());
+		bool bFreeJump = imc->state == InvaderMovementType::FREEJUMP;
+		AGameModeBase* GameMode = UGameplayStatics::GetGameMode(TheWorld);
+		ASIGameModeBase* MyGameMode = Cast<ASIGameModeBase>(GameMode);
+		UClass* otherActorClass = OtherActor->GetClass();
+
+		//First, bullet cases
+		if (OtherActor->IsA(ABullet::StaticClass())) {
+			ABullet* bullet = Cast<ABullet>(OtherActor);
+			if (bullet->bulletType == BulletType::PLAYER) {
+				//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("Invader %d killed"), this->positionInSquad));
+
+				OtherActor->Destroy();
+				MyGameMode->InvaderDestroyed.Broadcast(this->positionInSquad);
+				InvaderDestroyed();
+				return;
+			}
+			else
+				return; //It's an invader bullet, so it has to be ignored
+		}
+
+		// OVerlap with other Invader is ignored
+		if (OtherActor->IsA(AInvader::StaticClass()))
+			return;
+
+		// Overlap with anything in freejump (except invaders and their own bullets) is a silent Destroy.
+		if (bFreeJump) {
+			MyGameMode->InvaderDestroyed.Broadcast(this->positionInSquad);
+			Destroy();
+			return;
+		}
+
+		// Squad collides with limits
+		if (OtherActor->ActorHasTag(leftSideTag) && !bFreeJump)
+			MyGameMode->SquadOnLeftSide.ExecuteIfBound();
+		else if (OtherActor->ActorHasTag(rightSideTag) && !bFreeJump)
+			MyGameMode->SquadOnRightSide.ExecuteIfBound();
+		else if (OtherActor->ActorHasTag(downSideTag) && !bFreeJump) {
+			MyGameMode->SquadSuccessful.ExecuteIfBound(); // Squad wins!
+
+		}
+
+
+
+
+	}
+
+}
+
+// Las cabeceras de AInvader quedan:
+#include "Invader.h"
+#include "Bullet.h"
+#include "InvaderMovementComponent.h"
+#include "SIGameModeBase.h"
+
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundCue.h"
+
+
+// En InvaderSquad
+ 
+ // Ya está en RemoveInvader
+ 
+ 
+ Las cabeceras InvaderSquad.cpp quedan
+ 
+#include "InvaderSquad.h"
+#include "InvaderMovementComponent.h"
+#include "Invader.h"
+#include "SIGameModeBase.h"
+
+
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundCue.h"
+
+
+// En InvaderComponent.h en la cabeceras
+
+private:
+
+class ASIGameModeBase* MyGameMode; // to call delegates
+
+// En la implementacion en BeginPlay
+
+// Get the GameMode
+	UWorld* TheWorld;
+
+	TheWorld = GetWorld();
+	if (TheWorld) {
+		AGameModeBase* GameMode = UGameplayStatics::GetGameMode(TheWorld);
+		MyGameMode = Cast<ASIGameModeBase>(GameMode);
+	}
+
+
+// En la funcion Tick component tenemos que modificar el case correspondiente al estado DOWN
+// para ejecutar el delegado de terminacion de bajada
+
+case InvaderMovementType::DOWN:
+		if (previousState != InvaderMovementType::DOWN)
+			descendingProgress = 0.0f;
+		if (descendingProgress > descendingStep) {
+			deltaVertical = 0.0f;
+			MyGameMode->SquadFinishesDown.ExecuteIfBound();
+		}
+		deltaX = isXHorizontal ? 0.0f : -deltaVertical;
+		deltaY = !isXHorizontal ? 0.0f : -deltaVertical;
+		descendingProgress += deltaVertical;
+		previousState = InvaderMovementType::DOWN;
+		break;
+
+// Cambiamos las cabeceras
+
+#include "InvaderMovementComponent.h"
+#include "Invader.h"
+#include "SIGameModeBase.h"
+
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+
+// Compilamos ejecutamos y comprobamos la coordinación
+
+

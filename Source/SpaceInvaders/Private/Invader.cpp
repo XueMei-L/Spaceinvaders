@@ -260,25 +260,71 @@ void AInvader::PostInvaderDestroyed() {
 
 }
 
+// void AInvader::SetInvaderMesh(UStaticMesh* newStaticMesh, const FString path, FVector scale) {
+// 	const TCHAR* tpath;
+// 	tpath = AInvader::defaultStaticMeshName; // default route
+// 	if (!Mesh) // No Mesh component
+// 		return;
+
+// 	if (!newStaticMesh) {
+// 		if (!path.IsEmpty())
+// 			tpath = *path;
+// 		auto MeshAsset = ConstructorHelpers::FObjectFinder<UStaticMesh>(tpath);
+// 		newStaticMesh = MeshAsset.Object;
+// 	}
+
+// 	if (newStaticMesh) {
+// 		Mesh->SetStaticMesh(newStaticMesh);
+// 		Mesh->SetRelativeScale3D(scale);
+// 		FBoxSphereBounds meshBounds = Mesh->Bounds;
+// 		boundOrigin = meshBounds.Origin;
+// 		boundRadius = meshBounds.SphereRadius;
+// 	}
+// }
+
+
+// void AInvader::SetInvaderMesh(UStaticMesh* newStaticMesh, const FString path, FVector scale) {
+//     if (!Mesh) return;
+
+//     UStaticMesh* MeshToUse = newStaticMesh;
+
+//     // 运行期安全加载：不使用 ConstructorHelpers
+//     if (!MeshToUse && !path.IsEmpty()) {
+//         MeshToUse = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *path));
+//     }
+
+//     if (MeshToUse) {
+//         Mesh->SetStaticMesh(MeshToUse);
+//         Mesh->SetRelativeScale3D(scale);
+        
+//         // 关键：在这里更新 Bounds，但不要触发物理事件
+//         FBoxSphereBounds meshBounds = Mesh->Bounds;
+//         boundOrigin = meshBounds.Origin;
+//         boundRadius = meshBounds.SphereRadius;
+//     }
+// }
+
 void AInvader::SetInvaderMesh(UStaticMesh* newStaticMesh, const FString path, FVector scale) {
-	const TCHAR* tpath;
-	tpath = AInvader::defaultStaticMeshName; // default route
-	if (!Mesh) // No Mesh component
-		return;
+    if (!Mesh) return;
 
-	if (!newStaticMesh) {
-		if (!path.IsEmpty())
-			tpath = *path;
-		auto MeshAsset = ConstructorHelpers::FObjectFinder<UStaticMesh>(tpath);
-		newStaticMesh = MeshAsset.Object;
-	}
+    UStaticMesh* MeshToUse = newStaticMesh;
 
-	if (newStaticMesh) {
-		Mesh->SetStaticMesh(newStaticMesh);
-		Mesh->SetRelativeScale3D(scale);
-		FBoxSphereBounds meshBounds = Mesh->Bounds;
-		boundOrigin = meshBounds.Origin;
-		boundRadius = meshBounds.SphereRadius;
-	}
+    // 运行期安全加载逻辑
+    if (!MeshToUse && !path.IsEmpty()) {
+        MeshToUse = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *path));
+    }
+
+    if (MeshToUse) {
+        Mesh->SetStaticMesh(MeshToUse);
+        
+        // 应用你在测试中成功的缩放比例（比如 0.01f）
+        Mesh->SetRelativeScale3D(scale);
+        
+        // 关键：强制刷新物理边界
+        Mesh->UpdateBounds();
+        
+        FBoxSphereBounds meshBounds = Mesh->Bounds;
+        boundOrigin = meshBounds.Origin;
+        boundRadius = meshBounds.SphereRadius;
+    }
 }
-

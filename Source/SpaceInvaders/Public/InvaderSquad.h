@@ -61,10 +61,6 @@ public:
 
 protected:
 
-	// Mesh
-	// UPROPERTY(Transient)
-    // bool bIsSpawningSquad = false;
-
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad movement")
 	float horizontalVelocity;
 

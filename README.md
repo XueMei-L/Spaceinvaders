@@ -1,7 +1,5 @@
-# spaceinvaders53
- Basic Space Invaders Game in Unreal Engine 5. This is an didactic project to learn about basic classes in Unreal Engine.
+# Space Invader
 
- Start by generating Visual Studio Files (RMB on project file -> Generate Visual Studio Files)
- Then open the project file and wait for building binaries and opening UE5 editor.
- Controls: A,D, Space Bar
- 
+**Developer:** XueMei Lin
+
+Space Invader is a classic arcade-style shooting game where the player controls a defender ship and must eliminate waves of incoming enemies. The invaders move in formation and gradually become more challenging as the game progresses. The player needs to avoid enemy attacks while trying to achieve the highest score possible.

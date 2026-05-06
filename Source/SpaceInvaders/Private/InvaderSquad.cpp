@@ -55,88 +55,10 @@ int32 AInvaderSquad::GetCols() {
 int32 AInvaderSquad::GetNumberOfMembers() {
 	return this->numberOfMembers;
 }
+
 void AInvaderSquad::Initialize() {
 	PrimaryActorTick.bCanEverTick = true;
-
-
 }
-// codigo original
-// void AInvaderSquad::BeginPlay()
-// {
-// 	Super::BeginPlay();
-
-// 	UWorld* TheWorld = GetWorld();
-
-// 	// Bind to delegates
-// 	if (TheWorld != nullptr) {
-// 		AGameModeBase* GameMode = UGameplayStatics::GetGameMode(TheWorld);
-// 		MyGameMode = Cast<ASIGameModeBase>(GameMode);
-// 		if (MyGameMode != nullptr) {
-// 			MyGameMode->SquadOnRightSide.BindUObject(this, &AInvaderSquad::SquadOnRightSide);
-// 			MyGameMode->SquadOnLeftSide.BindUObject(this, &AInvaderSquad::SquadOnLeftSide);
-// 			MyGameMode->SquadFinishesDown.BindUObject(this, &AInvaderSquad::SquadFinishesDown);
-// 			MyGameMode->InvaderDestroyed.AddUObject(this, &AInvaderSquad::RemoveInvader);
-// 		}
-// 	}
-
-// 	// Set Invader Template with Default Value for invaderClass
-// 	if (invaderClass->IsChildOf<AInvader>()) {
-// 		invaderTemplate = NewObject<AInvader>(this, invaderClass);
-// 	}
-// 	else
-// 		invaderTemplate = NewObject<AInvader>();
-
-// 	//Spawn Invaders
-// 	FVector actorLocation = GetActorLocation();
-// 	FVector spawnLocation = actorLocation;
-// 	FRotator spawnRotation = FRotator(0.0f, 180.0f, 0.0f); // Invader Forward is oposite to Player Forward (Yaw rotation)
-// 	FActorSpawnParameters spawnParameters;
-// 	int32 count = 0;
-// 	AInvader* spawnedInvader;
-// 	float radiusX = 0.0f;
-// 	float radiusY = 0.0f;
-// 	for (int i = 0; i < this->nCols; i++)
-// 	{
-
-// 		for (int j = 0; j < this->nRows; j++)
-// 		{
-// 			spawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-// 			spawnParameters.Template = invaderTemplate;
-			
-// 			if(invaderClass!=nullptr)
-// 				spawnedInvader = GetWorld()->SpawnActor<AInvader>(invaderClass, spawnLocation, spawnRotation, spawnParameters);
-// 			else
-// 				spawnedInvader = GetWorld()->SpawnActor<AInvader>(spawnLocation, spawnRotation, spawnParameters);
-
-// 			if (spawnedInvader == nullptr) {
-
-// 				GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("%d %d null invader"), i, j));
-// 				break;
-// 			}
-			
-// 			// GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::Printf(TEXT("%d %d valid invader"), i, j));
-			
-// 			spawnedInvader->SetPositionInSquad(count);
-// 			++count;
-// 			SquadMembers.Add(spawnedInvader);
-// 			float r = spawnedInvader->GetBoundRadius();
-// 			if (r > radiusX)
-// 				radiusX = r;
-// 			if (r > radiusY)
-// 				radiusY = r;
-// 			spawnLocation.X += radiusX * 2 + this->extraSeparation;
-// 		}
-// 		spawnLocation.X = actorLocation.X;
-
-// 		spawnLocation.Y += radiusY * 2 + this->extraSeparation;
-// 	}
-
-// 	this->numberOfMembers = count;
-
-// 	this->state = InvaderMovementType::RIGHT;
-
-// }
-
 
 void AInvaderSquad::BeginPlay()
 {
@@ -169,29 +91,25 @@ void AInvaderSquad::BeginPlay()
     // Nested Loop to Spawn the Squad
     for (int i = 0; i < this->nCols; i++) // X-axis direction (Columns)
     {
-        // Reset Y-coordinate to the starting point for every new column
         spawnLocation.Y = actorLocation.Y; 
 
-        for (int j = 0; j < this->nRows; j++) // Y-axis direction (Rows)
+        for (int j = 0; j < this->nRows; j++)
         {
-            // Resolve the class to spawn and cast to UClass* to avoid compiler errors
             UClass* ClassToSpawn = invaderClass ? *invaderClass : AInvader::StaticClass();
             AInvader* spawnedInvader = GetWorld()->SpawnActor<AInvader>(ClassToSpawn, spawnLocation, spawnRotation, spawnParams);
 
             if (spawnedInvader != nullptr && spawnedInvader->Mesh) 
             {
-                // --- Physics Masking: Disable everything before changing the mesh ---
-                // This prevents instant collision triggers caused by mesh size changes
                 spawnedInvader->Mesh->SetGenerateOverlapEvents(false);
                 spawnedInvader->Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-                // --- Dynamic Appearance: Switch mesh based on row index (j) ---
+                // set differents meshes per line
                 FString MeshPath;
                 if (i == 0) MeshPath = TEXT("/Game/Meshes/Invader/greenInvader");
                 else if (i == 1) MeshPath = TEXT("/Game/Meshes/Invader/brightInvader");
                 else MeshPath = TEXT("/Game/Meshes/Invader/darkInvader");
 
-                // --- Apply Scale: Applying the tested scale (0.07f) ---
+                // change scale, cause 1.0f is too bigger
                 spawnedInvader->SetInvaderMesh(nullptr, MeshPath, FVector(0.07f, 0.07f, 0.07f));
 
                 // Register the invader to the squad
@@ -199,10 +117,8 @@ void AInvaderSquad::BeginPlay()
                 SquadMembers.Add(spawnedInvader);
                 count++;
 
-                // Update spacing reference based on the mesh radius
                 currentMaxRadius = FMath::Max(currentMaxRadius, spawnedInvader->GetBoundRadius());
 
-                // Increment Y position for the next row
                 spawnLocation.Y += (currentMaxRadius * 2) + this->extraSeparation;
             }
         }
@@ -210,18 +126,15 @@ void AInvaderSquad::BeginPlay()
         spawnLocation.X += (currentMaxRadius * 2) + this->extraSeparation;
     }
 
-    // Re-enable Physics and Overlaps
     // After all invaders are positioned and meshes are set, wake up their collision components
     for (AInvader* inv : SquadMembers) 
     {
         if (inv && inv->Mesh) 
         {
-            // Set collision profile to OverlapAllDynamic (common for Space Invaders logic)
             inv->Mesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
             inv->Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
             inv->Mesh->SetGenerateOverlapEvents(true);
             
-            // Force update the collision bounds to match the new visual mesh
             inv->Mesh->UpdateBounds(); 
         }
     }
@@ -250,10 +163,7 @@ void AInvaderSquad::UpdateSquadState(float delta) {
 	TArray<AInvader*> survivors;
 
 	for (auto invader : SquadMembers) {
-		//------------------------------------
-		if (invader) { // very important, first nullptr is checked!.
-
-
+		if (invader) {
 			// First, we get de movement component
 			UInvaderMovementComponent* imc = (UInvaderMovementComponent*)invader->GetComponentByClass(UInvaderMovementComponent::StaticClass());
 
@@ -269,7 +179,6 @@ void AInvaderSquad::UpdateSquadState(float delta) {
 			}
 		}
 
-		//------------------------------------
 	}
 	this->timeFromLastFreeJump += delta;
 	float val = FMath::RandRange(0.0f, 1.0f);
@@ -330,7 +239,6 @@ void AInvaderSquad::RemoveInvader(int32 ind) {
 	if (this->numberOfMembers == 0) {
 		if (MyGameMode != nullptr) {
 			MyGameMode->NewSquad.Broadcast(1); // parameter larger than 0 to avoid finishing game!
-
 		}
 	}
 }

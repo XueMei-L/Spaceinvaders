@@ -10,6 +10,8 @@ public class SpaceInvaders : ModuleRules
 	
 		// PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", 
 		// "Engine", "InputCore", "UMG" });
+		
+		// change to add Niagara
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", 
 		"Engine", "InputCore", "UMG", "Niagara" });
 

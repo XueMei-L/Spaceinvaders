@@ -98,25 +98,18 @@ void ASIPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction(TEXT("SIFire"), IE_Pressed, this, &ASIPawn::OnFire);
 	PlayerInputComponent->BindAction(TEXT("SIPause"), IE_Pressed, this, &ASIPawn::OnPause);
 
-	// 添加这一行：直接监听键盘 K 键
-    // PlayerInputComponent->BindKey(EKeys::K, IE_Pressed, this, &ASIGameModeBase::EndGame());
 }
 
 // test
 // void ASIPawn::QuickDebugDeath()
 // {
-//     // 1. 强制给一点分（方便测试是否真的存进去了）
 //     // this->playerPoints = 1234; 
 
 //     if (MyGameMode) {
-//         // 2. 保存分数到硬盘
 //         MyGameMode->UpdateHighScore(this->playerPoints);
 
-//         // 3. 从硬盘读取刚才存的分数（验证是否存进去了）
 //         int32 SavedScore = MyGameMode->GetSavedHighScore();
 
-//         // 4. 在屏幕左上角打印出来
-//         // 参数说明：-1(不覆盖旧消息), 5.f(显示5秒), FColor::Cyan(青色), 后面是内容
 //         if (GEngine)
 //         {
 //             GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, 
@@ -126,7 +119,6 @@ void ASIPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 // 	this->playerLifes = 0;
 // 	PostPlayerDestroyed();
 // }
-
 
 
 void ASIPawn::OnMove(float value) {
@@ -223,32 +215,24 @@ void ASIPawn::DestroyPlayer() {
 	}
 }
 
-
+// change with save high score data
 void ASIPawn::PostPlayerDestroyed() {
 
-    // End game - 当玩家生命值为 0 时
     if (this->playerLifes == 0) {
         
-        // --- 新增保存逻辑开始 ---
         if (MyGameMode) {
-            // 1. 调用你之前在 SIGameModeBase 中写的 UpdateHighScore 函数
-            // 注意：你的变量名是 playerPoints
-			UE_LOG(LogTemp, Warning, TEXT("Saving Score: %lld"), this->playerPoints); // 打印日志
+			// save data
+			UE_LOG(LogTemp, Warning, TEXT("Saving Score: %lld"), this->playerPoints);
             MyGameMode->UpdateHighScore(this->playerPoints); 
-            
-            // 2. 执行你原本的委托（如果有的话）
             MyGameMode->PlayerZeroLifes.ExecuteIfBound();
         }
 
-        // 3. 跳转到 GameOver 关卡
-        // 这里的 "GameOver" 必须和你 Content Browser 里的关卡名字完全一致
         UGameplayStatics::OpenLevel(GetWorld(), FName("GameOver"));
-        // --- 新增保存逻辑结束 ---
 
         return;
     }
 
-    // ... 下面是重生的代码，保持不变 ...
+	// reborn
     UStaticMeshComponent* LocalMeshComponent = Cast<UStaticMeshComponent>(GetComponentByClass(UStaticMeshComponent::StaticClass()));
     if (LocalMeshComponent != nullptr) {
         LocalMeshComponent->SetVisibility(true);

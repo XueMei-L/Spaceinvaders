@@ -122,7 +122,6 @@ void UInvaderMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTy
                     originTransform = this->targetPoints[currentTargetPoint - 1];
             }
         }
-        // recto hacia el jugador
         else {
             // lock object
             if (!bHasLockedTarget) {

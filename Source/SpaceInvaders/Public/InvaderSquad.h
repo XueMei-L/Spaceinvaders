@@ -59,6 +59,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	const TArray<class AInvader*>& GetSquadMembers() const { return SquadMembers; }
 
+	// create invaders
+	void CreateInvaders();
+
 protected:
 
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Squad movement")

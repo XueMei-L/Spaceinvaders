@@ -82,14 +82,40 @@ public:
 	// invader HP
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	int32 InvaderHP = 1;
+
 	//---------------------------------------------------------------
-	// 获取当前保存的最高分
+	// getter high score
     UFUNCTION(BlueprintCallable, Category = "Score")
     int32 GetSavedHighScore();
 
-    // 更新最高分（如果当前分数更高的话）
+    // update high score
     UFUNCTION(BlueprintCallable, Category = "Score")
     void UpdateHighScore(int32 CurrentScore);
+	//---------------------------------------------------------------
+	
+	// int32 CurrentLevel = 1;
+
+    // void GetLevelConfig(int32 Level, int32& OutRows, int32& OutCols, int32& OutExtraHP)
+    // {
+    //     OutRows = 3;
+    //     OutCols = 3;
+    //     OutExtraHP = 0;
+
+    //     for (int32 i = 1; i < Level; i++)
+    //     {
+    //         // 目标上限：4行 6列
+    //         if (OutRows < 4 || OutCols < 6)
+    //         {
+    //             if (i % 2 == 1) OutCols++;
+    //             else OutRows++;
+    //         }
+    //         else
+    //         {
+    //             OutExtraHP += 1; 
+    //         }
+    //     }
+    // }
+
 	//---------------------------------------------------------------
 
 protected:

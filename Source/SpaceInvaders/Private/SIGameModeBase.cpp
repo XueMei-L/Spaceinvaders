@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "SIGameModeBase.h"
 #include "SIPawn.h"
 #include "SIPlayerController.h"
@@ -42,30 +41,45 @@ void ASIGameModeBase::RegenerateSquad() {
 
 	if (this->spawnedInvaderSquad != nullptr)
 		this->spawnedInvaderSquad->Destroy();
+
 	if (InvaderSquadClass) {
-		AInvaderSquad* squad = Cast<AInvaderSquad>(InvaderSquadClass->GetDefaultObject());
-		if (squad) {
-			this->spawnedInvaderSquad = Cast<AInvaderSquad>(GetWorld()->SpawnActor(InvaderSquadClass, &spawnLocation));
-		}
-	}
+        this->spawnedInvaderSquad = GetWorld()->SpawnActor<AInvaderSquad>(InvaderSquadClass, spawnLocation, FRotator::ZeroRotator);
+
+        if (this->spawnedInvaderSquad) {
+            this->spawnedInvaderSquad->SetRows(nInvaderRows);
+            this->spawnedInvaderSquad->SetCols(nInvaderCols);
+			this->spawnedInvaderSquad->CreateInvaders();
+        }
+    }
 }
 
+// new squad
 void ASIGameModeBase::OnNewSquad(int32 lifes) {
-	// Add more invader in new round, should fix this change
-	// GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("nInvaderCols: %d"), nInvaderCols));
-	
-	// // Increased difficulty: more invaders per row
-	// if (nInvaderCols < 6)
-	// {
-		// 	nInvaderCols++;
-		// }
-		// RegenerateSquad();
+    CurrentRound++;
+    // max squad is 7 * 4
+    if (nInvaderRows < 7 || nInvaderCols < 4) 
+    {
+        if (CurrentRound % 2 == 0)
+        {
+            if (nInvaderCols < 4) nInvaderCols++;
+            else if (nInvaderRows < 7) nInvaderRows++;
+        }
+        else
+        {
+            if (nInvaderRows < 7) nInvaderRows++;
+            else if (nInvaderCols < 4) nInvaderCols++;
+        }
+        InvaderHP = 1; 
+    }
+    else 
+    {
+		// then every round invaders hp + 1
+        InvaderHP++; 
+    }
 
-	// add new round counter
-	CurrentRound++;
-	InvaderHP = CurrentRound;
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("CurrentRound: %d"), CurrentRound));
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("InvaderHP: %d"), InvaderHP));
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, 
+        FString::Printf(TEXT("Round: %d | Grid: %dx%d | HP: %d"), 
+        CurrentRound, nInvaderRows, nInvaderCols, InvaderHP));
 	
 	RegenerateSquad();
 

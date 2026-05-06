@@ -12,7 +12,6 @@
 #include "Sound/SoundCue.h"
 
 
-
 AInvaderSquad::AInvaderSquad()
 	: horizontalVelocity{ AInvaderSquad::defaultHorizontalVelocity }
 	, verticalVelocity{ AInvaderSquad::defaultVerticalVelocity }
@@ -60,13 +59,70 @@ void AInvaderSquad::Initialize() {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+
+void AInvaderSquad::CreateInvaders() {
+    for (AInvader* inv : SquadMembers) {
+        if (inv) inv->Destroy();
+    }
+    SquadMembers.Empty();
+
+    FVector actorLocation = GetActorLocation();
+    FVector spawnLocation = actorLocation;
+    FRotator spawnRotation = FRotator(0.0f, 180.0f, 0.0f);
+    FActorSpawnParameters spawnParams;
+    spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    int32 count = 0;
+    float currentMaxRadius = 0.0f;
+
+    for (int i = 0; i < this->nCols; i++) {
+        spawnLocation.Y = actorLocation.Y; 
+        for (int j = 0; j < this->nRows; j++) {
+            UClass* ClassToSpawn = invaderClass ? *invaderClass : AInvader::StaticClass();
+            AInvader* spawnedInvader = GetWorld()->SpawnActor<AInvader>(ClassToSpawn, spawnLocation, spawnRotation, spawnParams);
+
+            if (spawnedInvader != nullptr && spawnedInvader->Mesh) {
+                spawnedInvader->Mesh->SetGenerateOverlapEvents(false);
+                spawnedInvader->Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+				// set mesh
+                FString MeshPath;
+                if (i % 2 == 0) MeshPath = TEXT("/Game/Meshes/Invader/greenInvader");
+                // else if (j == 1) MeshPath = TEXT("/Game/Meshes/Invader/brightInvader");
+                else MeshPath = TEXT("/Game/Meshes/Invader/darkInvader");
+
+                spawnedInvader->SetInvaderMesh(nullptr, MeshPath, FVector(0.07f, 0.07f, 0.07f));
+                
+                spawnedInvader->SetPositionInSquad(count);
+                SquadMembers.Add(spawnedInvader);
+                count++;
+
+                currentMaxRadius = FMath::Max(currentMaxRadius, spawnedInvader->GetBoundRadius());
+                spawnLocation.Y += (currentMaxRadius * 2) + this->extraSeparation;
+            }
+        }
+        spawnLocation.X += (currentMaxRadius * 2) + this->extraSeparation;
+    }
+
+    for (AInvader* inv : SquadMembers) {
+        if (inv && inv->Mesh) {
+            inv->Mesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+            inv->Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+            inv->Mesh->SetGenerateOverlapEvents(true);
+            inv->Mesh->UpdateBounds(); 
+        }
+    }
+    
+    this->numberOfMembers = count;
+    this->state = InvaderMovementType::RIGHT;
+}
+
 void AInvaderSquad::BeginPlay()
 {
     Super::BeginPlay();
 
     UWorld* TheWorld = GetWorld();
     
-    // Bind GameMode Delegates
     if (TheWorld != nullptr) {
         ASIGameModeBase* GM = Cast<ASIGameModeBase>(UGameplayStatics::GetGameMode(TheWorld));
         if (GM) {
@@ -77,70 +133,6 @@ void AInvaderSquad::BeginPlay()
             MyGameMode->InvaderDestroyed.AddUObject(this, &AInvaderSquad::RemoveInvader);
         }
     }
-
-    // Prepare Spawning Parameters
-    FVector actorLocation = GetActorLocation();
-    FVector spawnLocation = actorLocation;
-    FRotator spawnRotation = FRotator(0.0f, 180.0f, 0.0f);
-    FActorSpawnParameters spawnParams;
-    spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-    int32 count = 0;
-    float currentMaxRadius = 0.0f;
-
-    // Nested Loop to Spawn the Squad
-    for (int i = 0; i < this->nCols; i++) // X-axis direction (Columns)
-    {
-        spawnLocation.Y = actorLocation.Y; 
-
-        for (int j = 0; j < this->nRows; j++)
-        {
-            UClass* ClassToSpawn = invaderClass ? *invaderClass : AInvader::StaticClass();
-            AInvader* spawnedInvader = GetWorld()->SpawnActor<AInvader>(ClassToSpawn, spawnLocation, spawnRotation, spawnParams);
-
-            if (spawnedInvader != nullptr && spawnedInvader->Mesh) 
-            {
-                spawnedInvader->Mesh->SetGenerateOverlapEvents(false);
-                spawnedInvader->Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-                // set differents meshes per line
-                FString MeshPath;
-                if (i == 0) MeshPath = TEXT("/Game/Meshes/Invader/greenInvader");
-                else if (i == 1) MeshPath = TEXT("/Game/Meshes/Invader/brightInvader");
-                else MeshPath = TEXT("/Game/Meshes/Invader/darkInvader");
-
-                // change scale, cause 1.0f is too bigger
-                spawnedInvader->SetInvaderMesh(nullptr, MeshPath, FVector(0.07f, 0.07f, 0.07f));
-
-                // Register the invader to the squad
-                spawnedInvader->SetPositionInSquad(count);
-                SquadMembers.Add(spawnedInvader);
-                count++;
-
-                currentMaxRadius = FMath::Max(currentMaxRadius, spawnedInvader->GetBoundRadius());
-
-                spawnLocation.Y += (currentMaxRadius * 2) + this->extraSeparation;
-            }
-        }
-        // Increment X position for the next column
-        spawnLocation.X += (currentMaxRadius * 2) + this->extraSeparation;
-    }
-
-    // After all invaders are positioned and meshes are set, wake up their collision components
-    for (AInvader* inv : SquadMembers) 
-    {
-        if (inv && inv->Mesh) 
-        {
-            inv->Mesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
-            inv->Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-            inv->Mesh->SetGenerateOverlapEvents(true);
-            
-            inv->Mesh->UpdateBounds(); 
-        }
-    }
-
-    this->numberOfMembers = count;
-    this->state = InvaderMovementType::RIGHT;
 }
 
 void AInvaderSquad::Destroyed() {

@@ -212,7 +212,6 @@ void AInvader::InvaderDestroyed() {
 	UWorld* TheWorld;
 	TheWorld = GetWorld();
 
-
 	if (TheWorld) {
 		bFrozen = true; // Invader can'tmove or fire while being destroyed
 
@@ -229,6 +228,17 @@ void AInvader::InvaderDestroyed() {
 			AudioComponent->SetSound(AudioExplosion);
 			AudioComponent->Play();
 		}
+
+		// Niagara effect produce
+        if (VfxExplosionNiagara) {
+            UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                TheWorld, 
+                VfxExplosionNiagara, 
+                GetActorLocation(), 
+                GetActorRotation()
+            );
+        }
+
 		// Wait:
 		TheWorld->GetTimerManager().SetTimer(timerHandle, this, &AInvader::PostInvaderDestroyed, 2.0f, false);
 	}

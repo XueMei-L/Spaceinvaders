@@ -4,7 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+
+// 在文件顶部包含头文件
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+
+
 #include "Invader.generated.h"
+
 
 UCLASS()
 class SPACEINVADERS_API AInvader : public AActor
@@ -89,6 +96,12 @@ public:
 	// set mesh
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Invader")
 	int32 InvaderType = 0;
+
+	// niagara effect
+	// 在类定义中添加
+	UPROPERTY(EditAnywhere, Category = "Effects")
+	class UNiagaraSystem* VfxExplosionNiagara;
+
 
 protected:
 	// Called when the game starts or when spawned

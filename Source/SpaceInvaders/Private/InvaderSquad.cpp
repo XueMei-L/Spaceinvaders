@@ -187,8 +187,8 @@ void AInvaderSquad::BeginPlay()
 
                 // --- Dynamic Appearance: Switch mesh based on row index (j) ---
                 FString MeshPath;
-                if (j == 0) MeshPath = TEXT("/Game/Meshes/Invader/greenInvader");
-                else if (j == 1) MeshPath = TEXT("/Game/Meshes/Invader/brightInvader");
+                if (i == 0) MeshPath = TEXT("/Game/Meshes/Invader/greenInvader");
+                else if (i == 1) MeshPath = TEXT("/Game/Meshes/Invader/brightInvader");
                 else MeshPath = TEXT("/Game/Meshes/Invader/darkInvader");
 
                 // --- Apply Scale: Applying the tested scale (0.07f) ---

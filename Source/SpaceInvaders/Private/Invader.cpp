@@ -56,24 +56,6 @@ void AInvader::BeginPlay()
 
 	CurrentHP = MaxHP;
 
-	// switch (InvaderType)
-	// {
-	// case 0:
-	// 	SetInvaderMesh(nullptr, TEXT("StaticMesh'/Game/Meshes/Invader/brightInvader.brightInvader'"));
-	// 	break;
-
-	// case 1:
-	// 	SetInvaderMesh(nullptr, TEXT("StaticMesh'/Game/Meshes/Invader/darkInvader.darkInvader'"));
-	// 	break;
-
-	// case 2:
-	// 	SetInvaderMesh(nullptr, TEXT("StaticMesh'/Game/Meshes/Invader/greenInvader.greenInvader'"));
-	// 	break;
-
-	// default:
-	// 	break;
-	// }
-
 	// Get size of invader
 	FBoxSphereBounds meshBounds = Mesh->Bounds;
 	boundOrigin = meshBounds.Origin;
@@ -256,8 +238,7 @@ void AInvader::PostInvaderDestroyed() {
 
 }
 
-
-
+// modify to set invader mesh 
 void AInvader::SetInvaderMesh(UStaticMesh* newStaticMesh, const FString path, FVector scale) {
     if (!Mesh) return;
 

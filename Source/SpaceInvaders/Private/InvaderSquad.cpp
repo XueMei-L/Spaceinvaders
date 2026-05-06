@@ -285,8 +285,6 @@ void AInvaderSquad::UpdateSquadState(float delta) {
 	}
 }
 
-
-
 // Handling events
 
 // La escuadra llega al lado derecho

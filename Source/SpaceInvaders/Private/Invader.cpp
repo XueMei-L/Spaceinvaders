@@ -113,10 +113,10 @@ void AInvader::Tick(float DeltaTime)
 	}
 	this->timeFromLastShot += DeltaTime;
 
-	// Fire?
-	float val = FMath::RandRange(0.0f, 1.0f);
+	// frecuencia de ataque
+	float val = FMath::RandRange(0.0f, 0.5f); 
 	if (val < (1.0 - FMath::Exp(-fireRate * this->timeFromLastShot)))
-		Fire();
+    Fire();
 
 	//Jet sound
 	if (AudioComponentJet != nullptr && AudioJet != nullptr) {
@@ -127,9 +127,7 @@ void AInvader::Tick(float DeltaTime)
 				AudioComponentJet->Play();
 			}
 		}
-
 	}
-
 }
 
 void AInvader::Fire() {
@@ -189,7 +187,7 @@ void AInvader::NotifyActorBeginOverlap(AActor* OtherActor) {
             if (bullet->bulletType == BulletType::PLAYER) {
                 //GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("Invader %d hit"), this->positionInSquad));
                 OtherActor->Destroy();
-                // Modify 3: increment HP every round-----------------------
+                // Modify 3: increment HP every round
 				// Reduce HP each hit
                 CurrentHP--;
                 // If HP reaches zero, destroy invader
@@ -199,7 +197,6 @@ void AInvader::NotifyActorBeginOverlap(AActor* OtherActor) {
                     InvaderDestroyed();
                 }
                 return;
-				//--------------------------------------------------------
             }
             else
                 return; //It's an invader bullet, so it has to be ignored
@@ -227,7 +224,6 @@ void AInvader::NotifyActorBeginOverlap(AActor* OtherActor) {
         }
     }
 }
-
 
 
 void AInvader::InvaderDestroyed() {
@@ -260,67 +256,20 @@ void AInvader::PostInvaderDestroyed() {
 
 }
 
-// void AInvader::SetInvaderMesh(UStaticMesh* newStaticMesh, const FString path, FVector scale) {
-// 	const TCHAR* tpath;
-// 	tpath = AInvader::defaultStaticMeshName; // default route
-// 	if (!Mesh) // No Mesh component
-// 		return;
 
-// 	if (!newStaticMesh) {
-// 		if (!path.IsEmpty())
-// 			tpath = *path;
-// 		auto MeshAsset = ConstructorHelpers::FObjectFinder<UStaticMesh>(tpath);
-// 		newStaticMesh = MeshAsset.Object;
-// 	}
-
-// 	if (newStaticMesh) {
-// 		Mesh->SetStaticMesh(newStaticMesh);
-// 		Mesh->SetRelativeScale3D(scale);
-// 		FBoxSphereBounds meshBounds = Mesh->Bounds;
-// 		boundOrigin = meshBounds.Origin;
-// 		boundRadius = meshBounds.SphereRadius;
-// 	}
-// }
-
-
-// void AInvader::SetInvaderMesh(UStaticMesh* newStaticMesh, const FString path, FVector scale) {
-//     if (!Mesh) return;
-
-//     UStaticMesh* MeshToUse = newStaticMesh;
-
-//     // 运行期安全加载：不使用 ConstructorHelpers
-//     if (!MeshToUse && !path.IsEmpty()) {
-//         MeshToUse = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *path));
-//     }
-
-//     if (MeshToUse) {
-//         Mesh->SetStaticMesh(MeshToUse);
-//         Mesh->SetRelativeScale3D(scale);
-        
-//         // 关键：在这里更新 Bounds，但不要触发物理事件
-//         FBoxSphereBounds meshBounds = Mesh->Bounds;
-//         boundOrigin = meshBounds.Origin;
-//         boundRadius = meshBounds.SphereRadius;
-//     }
-// }
 
 void AInvader::SetInvaderMesh(UStaticMesh* newStaticMesh, const FString path, FVector scale) {
     if (!Mesh) return;
 
     UStaticMesh* MeshToUse = newStaticMesh;
 
-    // 运行期安全加载逻辑
     if (!MeshToUse && !path.IsEmpty()) {
         MeshToUse = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *path));
     }
 
     if (MeshToUse) {
         Mesh->SetStaticMesh(MeshToUse);
-        
-        // 应用你在测试中成功的缩放比例（比如 0.01f）
         Mesh->SetRelativeScale3D(scale);
-        
-        // 关键：强制刷新物理边界
         Mesh->UpdateBounds();
         
         FBoxSphereBounds meshBounds = Mesh->Bounds;

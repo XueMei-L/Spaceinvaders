@@ -56,7 +56,8 @@ public:
 	float deltaAlphaInterpolation; //1/(Number of updates between two target points)
 
 protected:
-
+	// for invader movement attack
+	bool bHasLockedTarget;
 
 	// Called when the game starts
 	virtual void BeginPlay() override;

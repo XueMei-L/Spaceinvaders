@@ -51,183 +51,284 @@ void UInvaderMovementComponent::BeginPlay()
 }
 
 // Called every frame
+// #pragma optimize("", off)
+// void UInvaderMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+// {
+// 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+// 	AActor* Parent = GetOwner(); //Parent is the actor who owns this component.
+
+// 	if (!Parent)
+// 		return;
+
+// 	float deltaHorizontal = horizontalVelocity * DeltaTime; // Increment in horizontal and vertical dimensions given DeltaTime and parameterized velocities
+// 	float deltaVertical = verticalVelocity * DeltaTime;
+
+// 	float deltaX = 0.0f; // These deltas determine the change of the actor position
+// 	float deltaY = 0.0f;
+
+// 	// deltaX and deltaY are calculated differently for each movement type
+// 	// The movement type is in the public variable state
+// 	// previousState is updated
+// 	switch (state) {
+
+// 	case InvaderMovementType::STOP:
+// 		deltaX = 0.0f; //No variation if STOP
+// 		deltaY = 0.0f;
+// 		previousState = InvaderMovementType::STOP;
+// 		break;
+
+// 	case InvaderMovementType::RIGHT:
+		
+// 		deltaX = 0.0f;
+// 		deltaY = deltaHorizontal;
+
+// 		previousState = InvaderMovementType::RIGHT;
+// 		break;
+
+// 	case InvaderMovementType::LEFT: 
+		
+// 		deltaX = 0.0f;
+// 		deltaY = -deltaHorizontal;
+// 		previousState = InvaderMovementType::LEFT;
+// 		break;
+
+// 		// Down movement: this is an automatic movement that has to finish automatically
+// 		// It is based on an internal variable, descendinfProgress, that is updated.
+
+// 	case InvaderMovementType::DOWN:
+// 		if (previousState != InvaderMovementType::DOWN)
+// 			descendingProgress = 0.0f;
+// 		if (descendingProgress > descendingStep) {
+// 			deltaVertical = 0.0f;
+// 			MyGameMode->SquadFinishesDown.ExecuteIfBound();
+// 		}
+		
+// 		deltaX = -deltaVertical;
+// 		deltaY = 0.0f;
+// 		descendingProgress += deltaVertical;
+// 		previousState = InvaderMovementType::DOWN;
+// 		break;
+
+// 		// Free jump movement: this is an automatic complex movement.
+
+// 	case InvaderMovementType::FREEJUMP:
+	
+// 		deltaX = 0.0f; // This movement is not based on deltaX, deltaY, but in general transformations
+// 		deltaY = 0.0f;
+
+// 		if (previousState != InvaderMovementType::FREEJUMP) { // First time we enter in FREEJUMP
+// 			GenerateTargetPoints();
+// 			currentTargetPoint = 0;
+// 			if (numberOfTargetPoints > 0) {
+// 				originTransform = Parent->GetActorTransform(); // First originTransform for interpolation is actor transform
+// 				alphaInterpolation = 0.0f;
+// 			}
+
+// 			// Modificacion02: agregar la posicion del usuario, el free jump hacia el usuario
+// 			APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+// 			if (PlayerPawn)
+// 			{
+// 				// definir la posicion y direccion del jugador
+// 				// Posición del jugador en el sistema de coordenadas del mundo
+// 				FVector PlayerLocation = PlayerPawn->GetActorLocation();
+// 				// forward del jugador
+// 				// FVector PlayerForward = PlayerPawn->GetActorForwardVector();
+// 				// Posición del invader actual en el sistema de coordenadas del mundo
+// 				FVector InvaderPos = Parent->GetActorLocation();
+
+// 				// Calcular el forward
+// 				FVector Direction = PlayerLocation - InvaderPos;
+// 				Direction.Normalize();
+
+// 				// rotar 180 para tener bien la direccion
+// 				finalAngle = Direction.Rotation().Yaw + 180.0f;
+// 			}
+
+// 			previousState = InvaderMovementType::FREEJUMP;
+// 		}
+
+// 		// Now the movement is programatically defined.
+// 		// There are two stages:
+// 		// First stage: an automatic movement defined by a sequence of target transforms
+// 		// currentTargetPoint is the index of the current transform
+// 		if (currentTargetPoint < numberOfTargetPoints) {
+// 			FTransform newtransform = InterpolateWithTargetPoints(originTransform, alphaInterpolation); // New transform calculated by interpolation between current and currentTargetPoint.
+// 			// The actor receive the new transform					
+// 			Parent->SetActorTransform(newtransform);
+
+// 			alphaInterpolation += deltaAlphaInterpolation;
+// 			if (alphaInterpolation > 1.0f) { // target has been reached with interpolation
+// 				++currentTargetPoint;
+// 				alphaInterpolation = 0.0f; // To start a new segment of linear interpolation
+
+// 				if (currentTargetPoint < numberOfTargetPoints) // new originTransform is previous target
+// 					originTransform = this->targetPoints[currentTargetPoint - 1];
+// 				// If this was the last target we add a random rotation that it will define the direction of the movement in the second stage of the free jump
+// 				else {
+// 					Parent->AddActorLocalRotation(FRotator(0.0f, finalAngle, 0.0f));
+// 				}
+// 			}
+// 		}
+
+// 		// Second stage: the actor is simply moved in the forward direction 
+// 		else {
+// 			// DrawDebugLine(
+// 			// 	GetWorld(),
+// 			// 	Parent->GetActorLocation(),
+// 			// 	Parent->GetActorLocation() + Parent->GetActorForwardVector() * 300.0f,
+// 			// 	FColor::Red,
+// 			// 	false,
+// 			// 	0.1f,
+// 			// 	0,
+// 			// 	2.0f
+// 			// );
+
+// 			// APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+// 			// if (PlayerPawn) {
+// 			// 	FVector PlayerLocation = PlayerPawn->GetActorLocation();
+// 			// 	FVector InvaderPos = Parent->GetActorLocation();
+				
+// 			// 	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(InvaderPos, PlayerLocation);
+// 			// 	Parent->SetActorRotation(FRotator(0.0f, LookAtRotation.Yaw, 0.0f));
+// 			// }
+
+// 			FVector parentLocation = Parent->GetActorLocation();
+// 			FVector forward = Parent->GetActorForwardVector();
+// 			FVector right = Parent->GetActorRightVector();
+// 			parentLocation += freeJumpVelocity * DeltaTime * forward;
+
+// 			Parent->SetActorLocation(parentLocation);
+// 		}
+// 	}
+
+// 	// Apply calculated deltaX deltaY for those movements based on them
+// 	if (Parent && state != InvaderMovementType::FREEJUMP) {
+
+// 		FVector parentLocation = Parent->GetActorLocation();
+// 		parentLocation.X += deltaX;
+// 		parentLocation.Y += deltaY;
+// 		Parent->SetActorLocation(parentLocation);
+// 	}
+// }
 #pragma optimize("", off)
 void UInvaderMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	AActor* Parent = GetOwner(); //Parent is the actor who owns this component.
+    AActor* Parent = GetOwner(); 
+    if (!Parent) return;
 
-	if (!Parent)
-		return;
+    float deltaHorizontal = horizontalVelocity * DeltaTime; 
+    float deltaVertical = verticalVelocity * DeltaTime;
 
-	float deltaHorizontal = horizontalVelocity * DeltaTime; // Increment in horizontal and vertical dimensions given DeltaTime and parameterized velocities
-	float deltaVertical = verticalVelocity * DeltaTime;
+    float deltaX = 0.0f; 
+    float deltaY = 0.0f;
 
-	float deltaX = 0.0f; // These deltas determine the change of the actor position
-	float deltaY = 0.0f;
+    switch (state) {
 
-	// deltaX and deltaY are calculated differently for each movement type
-	// The movement type is in the public variable state
-	// previousState is updated
-	switch (state) {
+    case InvaderMovementType::STOP:
+        deltaX = 0.0f;
+        deltaY = 0.0f;
+        previousState = InvaderMovementType::STOP;
+        break;
 
-	case InvaderMovementType::STOP:
-		deltaX = 0.0f; //No variation if STOP
-		deltaY = 0.0f;
-		previousState = InvaderMovementType::STOP;
-		break;
+    case InvaderMovementType::RIGHT:
+        deltaX = 0.0f;
+        deltaY = deltaHorizontal;
+        previousState = InvaderMovementType::RIGHT;
+        break;
 
-	case InvaderMovementType::RIGHT:
-		
-		deltaX = 0.0f;
-		deltaY = deltaHorizontal;
+    case InvaderMovementType::LEFT: 
+        deltaX = 0.0f;
+        deltaY = -deltaHorizontal;
+        previousState = InvaderMovementType::LEFT;
+        break;
 
-		previousState = InvaderMovementType::RIGHT;
-		break;
+    case InvaderMovementType::DOWN:
+        if (previousState != InvaderMovementType::DOWN)
+            descendingProgress = 0.0f;
+        if (descendingProgress > descendingStep) {
+            deltaVertical = 0.0f;
+            MyGameMode->SquadFinishesDown.ExecuteIfBound();
+        }
+        
+        deltaX = -deltaVertical;
+        deltaY = 0.0f;
+        descendingProgress += deltaVertical;
+        previousState = InvaderMovementType::DOWN;
+        break;
 
-	case InvaderMovementType::LEFT: 
-		
-		deltaX = 0.0f;
-		deltaY = -deltaHorizontal;
-		previousState = InvaderMovementType::LEFT;
-		break;
+    case InvaderMovementType::FREEJUMP:
+        deltaX = 0.0f; 
+        deltaY = 0.0f;
 
-		// Down movement: this is an automatic movement that has to finish automatically
-		// It is based on an internal variable, descendinfProgress, that is updated.
+        // --- 第一阶段初始化 ---
+        if (previousState != InvaderMovementType::FREEJUMP) { 
+            GenerateTargetPoints();
+            currentTargetPoint = 0;
+            bHasLockedTarget = false; // 重置锁定状态，确保每次跳跃重新瞄准
 
-	case InvaderMovementType::DOWN:
-		if (previousState != InvaderMovementType::DOWN)
-			descendingProgress = 0.0f;
-		if (descendingProgress > descendingStep) {
-			deltaVertical = 0.0f;
-			MyGameMode->SquadFinishesDown.ExecuteIfBound();
-		}
-		
-		deltaX = -deltaVertical;
-		deltaY = 0.0f;
-		descendingProgress += deltaVertical;
-		previousState = InvaderMovementType::DOWN;
-		break;
+            if (numberOfTargetPoints > 0) {
+                originTransform = Parent->GetActorTransform(); 
+                alphaInterpolation = 0.0f;
+            }
+            previousState = InvaderMovementType::FREEJUMP;
+        }
 
-		// Free jump movement: this is an automatic complex movement.
+        // --- 第一阶段：绕圈插值移动 ---
+        if (currentTargetPoint < numberOfTargetPoints) {
+            FTransform newtransform = InterpolateWithTargetPoints(originTransform, alphaInterpolation); 
+            Parent->SetActorTransform(newtransform);
 
-	case InvaderMovementType::FREEJUMP:
-	
-		deltaX = 0.0f; // This movement is not based on deltaX, deltaY, but in general transformations
-		deltaY = 0.0f;
+            alphaInterpolation += deltaAlphaInterpolation;
+            if (alphaInterpolation > 1.0f) { 
+                ++currentTargetPoint;
+                alphaInterpolation = 0.0f; 
 
-		if (previousState != InvaderMovementType::FREEJUMP) { // First time we enter in FREEJUMP
-			GenerateTargetPoints();
-			currentTargetPoint = 0;
-			if (numberOfTargetPoints > 0) {
-				originTransform = Parent->GetActorTransform(); // First originTransform for interpolation is actor transform
-				alphaInterpolation = 0.0f;
-			}
+                if (currentTargetPoint < numberOfTargetPoints) 
+                    originTransform = this->targetPoints[currentTargetPoint - 1];
+            }
+        }
+        // --- 第二阶段：直线俯冲（锁定玩家位置） ---
+        else {
+            // 只有在没锁定目标时才执行一次转向逻辑
+            if (!bHasLockedTarget) {
+                APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+                if (PlayerPawn) {
+                    FVector PlayerLocation = PlayerPawn->GetActorLocation();
+                    FVector InvaderPos = Parent->GetActorLocation();
+                    
+                    // 使用内置数学库计算朝向玩家的旋转
+                    FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(InvaderPos, PlayerLocation);
+                    
+                    // 只修改 Yaw 轴，防止外星人倾斜，并锁定旋转
+                    Parent->SetActorRotation(FRotator(0.0f, LookAtRotation.Yaw, 0.0f));
+                    
+                    bHasLockedTarget = true; // 标记已锁定，下一帧将跳过此判断
+                }
+            }
 
-			// Modificacion02: agregar la posicion del usuario, el free jump hacia el usuario
-			APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
-			if (PlayerPawn)
-			{
-				// definir la posicion y direccion del jugador
-				// Posición del jugador en el sistema de coordenadas del mundo
-				FVector PlayerLocation = PlayerPawn->GetActorLocation();
-				// forward del jugador
-				// FVector PlayerForward = PlayerPawn->GetActorForwardVector();
-				// Posición del invader actual en el sistema de coordenadas del mundo
-				FVector InvaderPos = Parent->GetActorLocation();
+            // 沿着锁定后的 Forward 方向直线移动
+            FVector parentLocation = Parent->GetActorLocation();
+            FVector forward = Parent->GetActorForwardVector();
+            parentLocation += freeJumpVelocity * DeltaTime * forward;
 
-				// sirve para debug
-				// posicion del jugador
-				// DrawDebugSphere(
-				// 	GetWorld(),
-				// 	PlayerLocation,
-				// 	50.0f,
-				// 	12,
-				// 	FColor::Green,
-				// 	false,
-				// 	0.1f
-				// );
+            Parent->SetActorLocation(parentLocation);
+        }
+        break;
+    }
 
-				// // linea hacia el jugador
-				// DrawDebugLine(
-				// 	GetWorld(),
-				// 	PlayerLocation,
-				// 	PlayerLocation + PlayerForward * 300.0f,
-				// 	FColor::Blue,
-				// 	false,
-				// 	0.1f,
-				// 	0,
-				// 	2.0f
-				// );
-
-				// Calcular el forward
-				FVector Direction = PlayerLocation - InvaderPos;
-				Direction.Normalize();
-
-				// rotar 180 para tener bien la direccion
-				finalAngle = Direction.Rotation().Yaw + 180.0f;
-			}
-
-			previousState = InvaderMovementType::FREEJUMP;
-		}
-
-		// Now the movement is programatically defined.
-		// There are two stages:
-		// First stage: an automatic movement defined by a sequence of target transforms
-		// currentTargetPoint is the index of the current transform
-		if (currentTargetPoint < numberOfTargetPoints) {
-			FTransform newtransform = InterpolateWithTargetPoints(originTransform, alphaInterpolation); // New transform calculated by interpolation between current and currentTargetPoint.
-			// The actor receive the new transform					
-			Parent->SetActorTransform(newtransform);
-
-			alphaInterpolation += deltaAlphaInterpolation;
-			if (alphaInterpolation > 1.0f) { // target has been reached with interpolation
-				++currentTargetPoint;
-				alphaInterpolation = 0.0f; // To start a new segment of linear interpolation
-
-				if (currentTargetPoint < numberOfTargetPoints) // new originTransform is previous target
-					originTransform = this->targetPoints[currentTargetPoint - 1];
-				// If this was the last target we add a random rotation that it will define the direction of the movement in the second stage of the free jump
-				else {
-					Parent->AddActorLocalRotation(FRotator(0.0f, finalAngle, 0.0f));
-				}
-			}
-		}
-
-		// Second stage: the actor is simply moved in the forward direction 
-		else {
-			// DrawDebugLine(
-			// 	GetWorld(),
-			// 	Parent->GetActorLocation(),
-			// 	Parent->GetActorLocation() + Parent->GetActorForwardVector() * 300.0f,
-			// 	FColor::Red,
-			// 	false,
-			// 	0.1f,
-			// 	0,
-			// 	2.0f
-			// );
-			FVector parentLocation = Parent->GetActorLocation();
-			FVector forward = Parent->GetActorForwardVector();
-			FVector right = Parent->GetActorRightVector();
-			parentLocation += freeJumpVelocity * DeltaTime * forward;
-
-			Parent->SetActorLocation(parentLocation);
-		}
-	}
-
-	// Apply calculated deltaX deltaY for those movements based on them
-	if (Parent && state != InvaderMovementType::FREEJUMP) {
-
-		FVector parentLocation = Parent->GetActorLocation();
-		parentLocation.X += deltaX;
-		parentLocation.Y += deltaY;
-		Parent->SetActorLocation(parentLocation);
-	}
+    // 应用普通移动逻辑（非 FREEJUMP 状态）
+    if (Parent && state != InvaderMovementType::FREEJUMP) {
+        FVector parentLocation = Parent->GetActorLocation();
+        parentLocation.X += deltaX;
+        parentLocation.Y += deltaY;
+        Parent->SetActorLocation(parentLocation);
+    }
 }
-
-
 #pragma optimize("", on)
+
 
 // This method produce the sequence of target transform for interpolation
 #pragma optimize("", off)

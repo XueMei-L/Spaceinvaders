@@ -129,7 +129,7 @@ int32 ASIGameModeBase::GetSavedHighScore()
             return LoadInstance->HighScore;
         }
     }
-    return 0; // 没存档就返回 0
+    return 0;
 }
 
 // High Scores
